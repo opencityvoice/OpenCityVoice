@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronRight, List, Map as MapIcon, MessageSquare, Plus, ThumbsUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReportMap, type MapPin } from "@/components/map/report-map";
+import { VoteChip } from "@/components/vote-chip";
 import { CategoryLabel, StatusBadge, TimeAgo } from "@/components/report-bits";
 import { CategoryIcon } from "@/components/category-icon";
 import { IndependentNotice, LegalLinks } from "@/components/legal-links";
@@ -22,20 +23,24 @@ type Props = {
   reports: ReportListItem[];
   boundary: GeoJSON.Geometry | null;
   initialSelected: string | null;
+  votedIds: string[];
+  signedIn: boolean;
 };
 
-export function ExplorerView({ municipality, categories, statuses, reports, boundary, initialSelected }: Props) {
+export function ExplorerView({ municipality, categories, statuses, reports, boundary, initialSelected, votedIds, signedIn }: Props) {
   const t = useTranslations("explorer");
   const tc = useTranslations("common");
   const locale = useLocale();
   const [activeCategories, setActiveCategories] = useState<string[]>([]);
-  const [openOnly, setOpenOnly] = useState(false);
+  const [openOnly, setOpenOnly] = useState(true);
   const [sort, setSort] = useState<"newest" | "votes">("newest");
   const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const statusById = useMemo(() => new Map(statuses.map((s) => [s.id, s])), [statuses]);
+  const votedSet = useMemo(() => new Set(votedIds), [votedIds]);
+  const pagePath = `/${municipality.slug}`;
 
   const visible = useMemo(() => {
     const list = reports.filter(
@@ -100,11 +105,14 @@ export function ExplorerView({ municipality, categories, statuses, reports, boun
             const category = categoryById.get(r.category_id)!;
             const status = statusById.get(r.status_id);
             return (
-              <li key={r.id}>
+              <li key={r.id} className="relative flex">
                 <Link
                   href={reportLink(r)}
                   onMouseEnter={() => setSelectedId(r.id)}
-                  className={cn("flex gap-3 px-4 py-3.5 hover:bg-muted/60", selectedId === r.id && "md:bg-muted/60")}
+                  className={cn(
+                    "flex min-w-0 flex-1 gap-3 px-4 py-3.5 hover:bg-muted/60 after:absolute after:inset-0 after:content-['']",
+                    selectedId === r.id && "md:bg-muted/60",
+                  )}
                 >
                   <ReportThumb report={r} category={category} />
                   <div className="min-w-0 flex-1">
@@ -116,10 +124,12 @@ export function ExplorerView({ municipality, categories, statuses, reports, boun
                     <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
                       <span>#{r.number}</span>
                       <TimeAgo date={r.created_at} />
-                      <span className="inline-flex items-center gap-1">
-                        <ThumbsUp className="size-3" />
-                        {r.vote_count}
-                      </span>
+                      {r.duplicate_of && (
+                        <span className="inline-flex items-center gap-1">
+                          <ThumbsUp className="size-3" />
+                          {r.vote_count}
+                        </span>
+                      )}
                       <span className="inline-flex items-center gap-1">
                         <MessageSquare className="size-3" />
                         {r.comment_count}
@@ -127,6 +137,17 @@ export function ExplorerView({ municipality, categories, statuses, reports, boun
                     </div>
                   </div>
                 </Link>
+                {!r.duplicate_of && (
+                  <div className="relative z-10 flex items-center pr-3">
+                    <VoteChip
+                      reportId={r.id}
+                      count={r.vote_count}
+                      voted={votedSet.has(r.id)}
+                      signedIn={signedIn}
+                      path={pagePath}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}
@@ -254,15 +275,15 @@ export function ExplorerView({ municipality, categories, statuses, reports, boun
     const category = categoryById.get(report.category_id);
     const status = statusById.get(report.status_id);
     return (
-      <div className="relative overflow-hidden rounded-xl border bg-background shadow-lg">
+      <div className="relative flex overflow-hidden rounded-xl border bg-background shadow-lg">
         <button
           onClick={() => setSelectedId(null)}
-          className="absolute top-2 right-2 z-10 rounded-full bg-background/90 p-1.5 text-muted-foreground hover:text-foreground"
+          className="absolute top-2 right-2 z-20 rounded-full bg-background/90 p-1.5 text-muted-foreground hover:text-foreground"
           aria-label={tc("close")}
         >
           <X className="size-4" />
         </button>
-        <Link href={reportLink(report)} className="flex gap-3 p-3">
+        <Link href={reportLink(report)} className="flex min-w-0 flex-1 gap-3 p-3 after:absolute after:inset-0 after:content-['']">
           {category && <ReportThumb report={report} category={category} large />}
           <div className="min-w-0 flex-1 pr-6">
             {status && <StatusBadge name={status.name} color={status.color} />}
@@ -270,10 +291,12 @@ export function ExplorerView({ municipality, categories, statuses, reports, boun
             {category && <CategoryLabel name={category.name} icon={category.icon} color={category.color} className="mt-1.5" />}
             <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
               <TimeAgo date={report.created_at} />
-              <span className="inline-flex items-center gap-1">
-                <ThumbsUp className="size-3" />
-                {report.vote_count}
-              </span>
+              {report.duplicate_of && (
+                <span className="inline-flex items-center gap-1">
+                  <ThumbsUp className="size-3" />
+                  {report.vote_count}
+                </span>
+              )}
               <span className="ml-auto inline-flex items-center font-medium text-foreground">
                 {t("viewDetails")}
                 <ChevronRight className="size-3.5" />
@@ -281,6 +304,17 @@ export function ExplorerView({ municipality, categories, statuses, reports, boun
             </div>
           </div>
         </Link>
+        {!report.duplicate_of && (
+          <div className="relative z-10 flex items-center pr-3">
+            <VoteChip
+              reportId={report.id}
+              count={report.vote_count}
+              voted={votedSet.has(report.id)}
+              signedIn={signedIn}
+              path={pagePath}
+            />
+          </div>
+        )}
       </div>
     );
   }

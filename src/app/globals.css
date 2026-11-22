@@ -144,6 +144,13 @@
   font-size: 10px;
 }
 
+/* Map controls sit at the vertical center of the right edge, clear of corner cards. */
+.maplibregl-ctrl-top-right {
+  top: 50%;
+  margin-top: 0;
+  transform: translateY(-50%);
+}
+
 .ocv-style-control {
   position: relative;
 }

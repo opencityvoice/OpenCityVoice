@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
-import { getAccess, getBoundary, getCategories, getMunicipality, getReportListItem, getReports, getStatuses } from "@/lib/data";
+import { getAccess, getBoundary, getCategories, getMunicipality, getReportListItem, getReports, getStatuses, getVotedReportIds } from "@/lib/data";
 import { ExplorerView } from "./explorer-view";
 
 export async function generateMetadata({ params }: PageProps<"/[municipality]">): Promise<Metadata> {
@@ -14,12 +14,13 @@ export default async function MunicipalityPage({ params, searchParams }: PagePro
   const { report } = await searchParams;
   const initialSelected = typeof report === "string" ? report : null;
   const municipality = await getMunicipality(slug);
-  const [categories, statuses, allReports, boundary, access] = await Promise.all([
+  const [categories, statuses, allReports, boundary, access, votedIds] = await Promise.all([
     getCategories(municipality.id),
     getStatuses(municipality.id),
     getReports(municipality.id),
     getBoundary(municipality.id),
     getAccess(municipality.id),
+    getVotedReportIds(municipality.id),
   ]);
   let reports = allReports;
   if (initialSelected && !reports.some((r) => r.id === initialSelected)) {
@@ -37,6 +38,8 @@ export default async function MunicipalityPage({ params, searchParams }: PagePro
         reports={reports}
         boundary={boundary}
         initialSelected={initialSelected}
+        votedIds={votedIds}
+        signedIn={Boolean(access.user)}
       />
     </div>
   );

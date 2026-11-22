@@ -8,10 +8,12 @@ import { siteUrl } from "@/lib/config";
 async function recipient(admin: ReturnType<typeof createAdminClient>, userId: string) {
   const [{ data: user }, { data: profile }] = await Promise.all([
     admin.auth.admin.getUserById(userId),
-    admin.from("profiles").select("locale").eq("id", userId).single(),
+    admin.from("profiles").select("locale, email_notifications").eq("id", userId).single(),
   ]);
   const email = user?.user?.email;
-  return email ? { email, locale: profile?.locale ?? configuredLocale() ?? defaultLocale } : null;
+  return email
+    ? { email, locale: profile?.locale ?? configuredLocale() ?? defaultLocale, emailNotifications: profile?.email_notifications ?? true }
+    : null;
 }
 
 /** E-mails staff members who follow the report's category. */
@@ -123,6 +125,52 @@ export async function notifyAssigneeOfComment(reportId: string, commenterId: str
     accentColor: municipality.primary_color,
     brand: emailBrand(municipality),
   });
+}
+
+/** E-mails users subscribed to a report (anyone who commented there) about a new comment. */
+export async function notifyCommentSubscribers(reportId: string, commenterId: string, body: string) {
+  const admin = createAdminClient();
+  const { data: report } = await admin
+    .from("reports")
+    .select("id, number, title, description, municipality_id, municipalities(slug, name, primary_color, logo_path)")
+    .eq("id", reportId)
+    .single();
+  if (!report?.municipalities) return;
+
+  const [{ data: subs }, { data: commenter }] = await Promise.all([
+    admin.from("report_subscriptions").select("user_id").eq("report_id", reportId).neq("user_id", commenterId),
+    admin.from("profiles").select("full_name").eq("id", commenterId).single(),
+  ]);
+  if (!subs?.length) return;
+
+  const municipality = report.municipalities;
+  const title = report.title || report.description.slice(0, 80);
+  await Promise.all(
+    subs.map(async ({ user_id }) => {
+      const to = await recipient(admin, user_id);
+      if (!to?.emailNotifications) return;
+      const t = await getTranslations({ locale: to.locale, namespace: "email" });
+      await sendEmail({
+        to: to.email,
+        subject: t("commentSubject", { municipality: municipality.name, number: report.number }),
+        paragraphs: [
+          t("followCommentIntro", {
+            name: commenter?.full_name || t("someone"),
+            number: report.number,
+            title,
+          }),
+        ],
+        quote: body ? { label: t("commentLabel"), text: body } : null,
+        action: {
+          label: t("viewReport"),
+          url: `${siteUrl}/${municipality.slug}/reports/${report.number}`,
+        },
+        footer: t("unsubscribe", { url: `${siteUrl}/profile` }),
+        accentColor: municipality.primary_color,
+        brand: emailBrand(municipality),
+      });
+    }),
+  );
 }
 
 /** E-mails municipality admins when content is flagged, once per piece of content until it is resolved. */

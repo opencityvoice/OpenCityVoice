@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { requireUser } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { unsubscribeFromReport } from "@/app/actions/profile";
 import { ProfileForm } from "./profile-form";
 
 export async function generateMetadata() {
@@ -15,7 +16,7 @@ export default async function ProfilePage() {
   const user = await requireUser("/profile");
   const t = await getTranslations("profile");
   const supabase = await createClient();
-  const [{ data: reports }, { data: memberships }] = await Promise.all([
+  const [{ data: reports }, { data: memberships }, { data: subscriptions }] = await Promise.all([
     supabase
       .from("reports")
       .select("id, number, title, description, created_at, municipalities(slug, name), statuses(name, color)")
@@ -23,7 +24,15 @@ export default async function ProfilePage() {
       .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("municipality_members").select("status, role, municipalities(slug, name)").eq("user_id", user.id),
+    supabase
+      .from("report_subscriptions")
+      .select("report_id, reports(number, title, description, municipalities(slug, name))")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
   ]);
+  const followedReports = (subscriptions ?? [])
+    .map((s) => ({ reportId: s.report_id, report: s.reports }))
+    .filter((s) => s.report?.municipalities);
   // Reports and memberships in deactivated municipalities have no visible municipality.
   const visibleReports = (reports ?? []).filter((r) => r.municipalities);
   const visibleMemberships = (memberships ?? []).filter((m) => m.municipalities);
@@ -38,6 +47,34 @@ export default async function ProfilePage() {
           fullName={user.profile.full_name ?? ""}
           emailNotifications={user.profile.email_notifications}
         />
+
+        <section>
+          <h2 className="text-sm font-semibold">{t("commentNotifications")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("commentNotificationsText")}</p>
+          <ul className="mt-3 divide-y rounded-xl border">
+            {followedReports.map(({ reportId, report }) => (
+              <li key={reportId} className="flex items-center gap-3 p-3 text-sm">
+                <Link
+                  href={`/${report!.municipalities!.slug}/reports/${report!.number}`}
+                  className="min-w-0 flex-1"
+                >
+                  <span className="block truncate font-medium">{report!.title || report!.description}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {report!.municipalities!.name} · #{report!.number}
+                  </span>
+                </Link>
+                <form action={unsubscribeFromReport.bind(null, reportId)}>
+                  <button type="submit" className="shrink-0 text-xs text-muted-foreground hover:text-foreground">
+                    {t("unsubscribeReport")}
+                  </button>
+                </form>
+              </li>
+            ))}
+            {!followedReports.length && (
+              <li className="p-4 text-sm text-muted-foreground">{t("noSubscriptions")}</li>
+            )}
+          </ul>
+        </section>
 
         {(visibleMemberships.length > 0 || user.profile.is_platform_admin) && (
           <section>

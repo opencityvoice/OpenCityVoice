@@ -71,12 +71,11 @@ export function ReportMap({ center, zoom, pins, boundary, selectedId, onSelect, 
             map.setStyle(mapStyle(id), { diff: false });
           },
         ),
-        "bottom-right",
+        "top-right",
       );
-      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
       map.addControl(
         new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: false }),
-        "bottom-right",
+        "top-right",
       );
     }
 

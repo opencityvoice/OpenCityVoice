@@ -24,6 +24,14 @@ export async function updateProfile(input: z.input<typeof schema>) {
   return { ok: true as const };
 }
 
+export async function unsubscribeFromReport(reportId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) return;
+  await supabase.from("report_subscriptions").delete().eq("report_id", reportId).eq("user_id", data.claims.sub);
+  revalidatePath("/profile");
+}
+
 const preferencesSchema = z.object({
   municipalityId: z.uuid(),
   categoryIds: z.array(z.uuid()).max(200),
