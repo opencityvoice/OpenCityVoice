@@ -112,7 +112,7 @@ export async function notifyAssigneeOfComment(reportId: string, commenterId: str
         title: report.title || report.description.slice(0, 80),
       }),
     ],
-    quote: { label: t("commentLabel"), text: body },
+    quote: body ? { label: t("commentLabel"), text: body } : null,
     action: {
       label: t("viewReport"),
       url: `${siteUrl}/${municipality.slug}/reports/${report.number}`,

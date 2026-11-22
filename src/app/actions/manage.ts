@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -17,7 +18,7 @@ async function staffContext(reportId: string) {
   if (!claims?.claims) return null;
   const { data: report } = await supabase
     .from("reports")
-    .select("id, number, title, description, municipality_id, author_id, status_id, municipalities(slug, name, primary_color, logo_path)")
+    .select("id, number, title, description, municipality_id, author_id, status_id, is_hidden, municipalities(slug, name, primary_color, logo_path)")
     .eq("id", reportId)
     .single();
   if (!report) return null;
@@ -78,10 +79,69 @@ export async function updateStatus(input: z.input<typeof statusSchema>): Promise
   return { ok: true };
 }
 
+/** E-mails the report's author, and authors of reports merged into it, about a status change. */
 async function notifyAuthor(
   report: NonNullable<Awaited<ReturnType<typeof staffContext>>>["report"],
   statusName: unknown,
   note: string | null,
+) {
+  const admin = createAdminClient();
+  // Authors of merged duplicates only hear about the original while it is public.
+  const { data: merged } = report.is_hidden
+    ? { data: [] }
+    : await admin.from("reports").select("author_id").eq("duplicate_of", report.id);
+  const authorIds = [...new Set([report.author_id, ...(merged ?? []).map((r) => r.author_id)])];
+  const municipality = report.municipalities!;
+  const title = report.title || report.description.slice(0, 80);
+
+  await Promise.all(
+    authorIds.map(async (authorId) => {
+      const { data: author } = await admin
+        .from("profiles")
+        .select("email_notifications, locale")
+        .eq("id", authorId)
+        .single();
+      if (!author?.email_notifications) return;
+      const { data: user } = await admin.auth.admin.getUserById(authorId);
+      const email = user?.user?.email;
+      if (!email) return;
+
+      const locale = author.locale ?? configuredLocale() ?? defaultLocale;
+      const t = await getTranslations({ locale, namespace: "email" });
+      const status = localized(statusName, locale);
+      await sendEmail({
+        to: email,
+        subject: t("statusSubject", { number: report.number, status }),
+        paragraphs: [t("statusIntro", { title, municipality: municipality.name, status })],
+        quote: note ? { label: t("statusNote"), text: note } : null,
+        action: { label: t("viewReport"), url: `${siteUrl}/${municipality.slug}/reports/${report.number}` },
+        footer: t("unsubscribe", { url: `${siteUrl}/profile` }),
+        accentColor: municipality.primary_color,
+        brand: emailBrand(municipality),
+      });
+    }),
+  );
+}
+
+export async function mergeReport(reportId: string, targetNumber: number): Promise<Result> {
+  if (!Number.isInteger(targetNumber) || targetNumber < 1) return { ok: false, error: "invalid" };
+  const ctx = await staffContext(reportId);
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { data: number, error } = await ctx.supabase.rpc("merge_report", {
+    p_duplicate_id: reportId,
+    p_target_number: targetNumber,
+  });
+  if (error || !number) return { ok: false, error: "invalid" };
+  const slug = ctx.report.municipalities!.slug;
+  after(() => notifyMergedAuthor(ctx.report, number));
+  revalidateReport(slug, ctx.report.number);
+  revalidateReport(slug, number);
+  return { ok: true };
+}
+
+async function notifyMergedAuthor(
+  report: NonNullable<Awaited<ReturnType<typeof staffContext>>>["report"],
+  targetNumber: number,
 ) {
   const admin = createAdminClient();
   const { data: author } = await admin
@@ -97,17 +157,14 @@ async function notifyAuthor(
   const locale = author.locale ?? configuredLocale() ?? defaultLocale;
   const t = await getTranslations({ locale, namespace: "email" });
   const municipality = report.municipalities!;
-  const status = localized(statusName, locale);
-  const title = report.title || report.description.slice(0, 80);
   await sendEmail({
     to: email,
-    subject: t("statusSubject", { number: report.number, status }),
-    paragraphs: [t("statusIntro", { title, municipality: municipality.name, status })],
-    quote: note ? { label: t("statusNote"), text: note } : null,
-    action: { label: t("viewReport"), url: `${siteUrl}/${municipality.slug}/reports/${report.number}` },
+    subject: t("mergedSubject", { number: report.number, target: targetNumber }),
+    paragraphs: [t("mergedIntro", { number: report.number, target: targetNumber, municipality: municipality.name })],
+    action: { label: t("viewReport"), url: `${siteUrl}/${municipality.slug}/reports/${targetNumber}` },
     footer: t("unsubscribe", { url: `${siteUrl}/profile` }),
     accentColor: municipality.primary_color,
-      brand: emailBrand(municipality),
+    brand: emailBrand(municipality),
   });
 }
 

@@ -322,6 +322,7 @@ export type Database = {
           id: string;
           is_hidden: boolean;
           is_official: boolean;
+          photos: string[];
           report_id: string;
         };
         ComputedFields: never;
@@ -332,6 +333,7 @@ export type Database = {
           id?: string;
           is_hidden?: boolean;
           is_official?: boolean;
+          photos?: string[];
           report_id: string;
         };
         Update: {
@@ -341,6 +343,7 @@ export type Database = {
           id?: string;
           is_hidden?: boolean;
           is_official?: boolean;
+          photos?: string[];
           report_id?: string;
         };
         Relationships: [
@@ -525,6 +528,7 @@ export type Database = {
           comment_count: number;
           created_at: string;
           description: string;
+          duplicate_of: string | null;
           id: string;
           is_hidden: boolean;
           lat: number;
@@ -547,6 +551,7 @@ export type Database = {
           comment_count?: number;
           created_at?: string;
           description: string;
+          duplicate_of?: string | null;
           id?: string;
           is_hidden?: boolean;
           lat: number;
@@ -568,6 +573,7 @@ export type Database = {
           comment_count?: number;
           created_at?: string;
           description?: string;
+          duplicate_of?: string | null;
           id?: string;
           is_hidden?: boolean;
           lat?: number;
@@ -604,6 +610,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "reports_duplicate_of_fkey";
+            columns: ["duplicate_of"];
+            isOneToOne: false;
+            referencedRelation: "reports";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "reports_municipality_id_fkey";
             columns: ["municipality_id"];
             isOneToOne: false;
@@ -626,6 +639,7 @@ export type Database = {
           id: string;
           is_active: boolean;
           is_closed: boolean;
+          is_duplicate: boolean;
           is_initial: boolean;
           municipality_id: string;
           name: NonNullable<Json>;
@@ -638,6 +652,7 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           is_closed?: boolean;
+          is_duplicate?: boolean;
           is_initial?: boolean;
           municipality_id: string;
           name: NonNullable<Json>;
@@ -649,6 +664,7 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           is_closed?: boolean;
+          is_duplicate?: boolean;
           is_initial?: boolean;
           municipality_id?: string;
           name?: NonNullable<Json>;
@@ -677,6 +693,10 @@ export type Database = {
       is_municipality_admin: { Args: { mid: string }; Returns: boolean };
       is_municipality_staff: { Args: { mid: string }; Returns: boolean };
       is_platform_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      merge_report: {
+        Args: { p_duplicate_id: string; p_target_number: number };
+        Returns: number;
+      };
       municipality_at: {
         Args: { p_lat: number; p_lng: number };
         Returns: {

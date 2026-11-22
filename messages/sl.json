@@ -115,7 +115,10 @@
     "shareText": "Več podpore pomaga občini pri določanju prednosti. Delite jo s sosedi.",
     "shareOn": "Deli na {network}",
     "shareEmail": "E-pošta",
-    "shareMessage": "{title} – podprite pobudo v {municipality} na OpenCityVoice"
+    "shareMessage": "{title} – podprite pobudo v {municipality} na OpenCityVoice",
+    "addPhoto": "Dodaj fotografijo",
+    "removePhoto": "Odstrani fotografijo",
+    "duplicateOf": "Ta pobuda je podvojena in združena s pobudo <link>#{number}</link>. Spremljajte jo tam."
   },
   "newReport": {
     "title": "Prijavi težavo",
@@ -148,11 +151,13 @@
     "viewReport": "Ogled pobude",
     "backToMap": "Nazaj na zemljevid",
     "duplicatesTitle": "Podobne pobude v bližini",
-    "duplicatesText": "Je to ena od njih? Podpora obstoječi pobudi pomaga bolj kot podvojena prijava.",
+    "duplicatesText": "Je to ena od njih? Namesto nove pobude jo podprite ali v komentar dodajte novo fotografijo.",
     "supportThis": "Podpri to",
     "notDuplicate": "Nobena od teh, nadaljuj",
     "metersAway": "{meters} m stran",
-    "rateLimited": "V kratkem času ste oddali veliko pobud. Poskusite znova pozneje."
+    "rateLimited": "V kratkem času ste oddali veliko pobud. Poskusite znova pozneje.",
+    "nearbyTitle": "{count, plural, one {V bližini je že # pobuda} two {V bližini sta že # pobudi} few {V bližini so že # pobude} other {V bližini je že # pobud}}",
+    "nearbyText": "Če gre za isto težavo, jo podprite ali v komentar dodajte novo fotografijo."
   },
   "profile": {
     "title": "Vaš profil",
@@ -243,7 +248,15 @@
     "minVotesOption": "{count}+ glasov",
     "recentVotes": "+{count} v 7 dneh",
     "notifications": "Obvestila",
-    "moderation": "Moderacija"
+    "moderation": "Moderacija",
+    "markDuplicate": "Podvojena pobuda",
+    "markDuplicateText": "Če je ista težava že prijavljena, to pobudo združite z njo. Podporniki se prenesejo, avtor prejme obvestilo.",
+    "mergeInto": "Združi",
+    "targetNumber": "Številka glavne pobude",
+    "mergeConfirm": "Združim to pobudo s pobudo #{number}?",
+    "merged": "Združeno s pobudo #{number}.",
+    "mergeFailed": "Združevanje ni uspelo. Preverite številko pobude.",
+    "mergedInto": "Združeno s pobudo #{number}"
   },
   "team": {
     "title": "Ekipa in odgovorne osebe",
@@ -361,7 +374,9 @@
     "flagReportIntro": "Uporabnik je pobudo #{number} »{title}« prijavil kot neprimerno.",
     "flagCommentIntro": "Uporabnik je komentar pri pobudi #{number} »{title}« prijavil kot neprimeren.",
     "flagReason": "Razlog: {reason}",
-    "openModeration": "Odpri moderacijo"
+    "openModeration": "Odpri moderacijo",
+    "mergedSubject": "Pobuda #{number} je združena s pobudo #{target}",
+    "mergedIntro": "{municipality} je vašo pobudo #{number} združila s pobudo #{target}, ki opisuje isto težavo. Vaša podpora je prenesena, obvestila o statusu pa boste prejemali za pobudo #{target}."
   },
   "notFound": {
     "title": "Stran ne obstaja",

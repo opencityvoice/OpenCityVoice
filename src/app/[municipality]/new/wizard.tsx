@@ -67,12 +67,13 @@ export function NewReportWizard({ userId, municipality, categories, boundary }: 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [duplicates, setDuplicates] = useState<Duplicate[] | null>(null);
+  const [nearby, setNearby] = useState<Duplicate[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [createdNumber, setCreatedNumber] = useState<number | null>(null);
 
   useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.preview)), [photos]);
 
-  // Validate the boundary and look up a readable address whenever the pin settles.
+  // Validate the boundary, find open reports nearby and look up a readable address whenever the pin settles.
   useEffect(() => {
     const [lat, lng] = position;
     const timer = setTimeout(async () => {
@@ -82,6 +83,13 @@ export function NewReportWizard({ userId, municipality, categories, boundary }: 
         p_lng: lng,
       });
       setInside(data !== false);
+      const { data: near } = await supabase.rpc("nearby_reports", {
+        p_municipality_id: municipality.id,
+        p_lat: lat,
+        p_lng: lng,
+        p_radius_m: 50,
+      });
+      setNearby((near ?? []) as Duplicate[]);
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}&accept-language=${locale}`,
@@ -211,7 +219,9 @@ export function NewReportWizard({ userId, municipality, categories, boundary }: 
 
   async function supportExisting(report: Duplicate) {
     const path = `/${municipality.slug}/reports/${report.number}`;
-    await toggleVote(report.id, path);
+    const result = await toggleVote(report.id, path);
+    // toggleVote removes an existing vote; restore it so "support" never un-supports.
+    if (result.ok && !result.voted) await toggleVote(report.id, path);
     router.push(path);
   }
 
@@ -373,6 +383,13 @@ export function NewReportWizard({ userId, municipality, categories, boundary }: 
                   {t("outsideMunicipality", { municipality: municipality.name })}
                 </p>
               )}
+              {inside && nearby.length > 0 && (
+                <section className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
+                  <p className="text-sm font-semibold text-amber-950">{t("nearbyTitle", { count: nearby.length })}</p>
+                  <p className="mt-0.5 text-xs text-amber-900">{t("nearbyText")}</p>
+                  <DuplicateList items={nearby.slice(0, 3)} slug={municipality.slug} onSupport={supportExisting} className="mt-2" />
+                </section>
+              )}
               <Button className="mt-4 h-12 w-full" disabled={!inside} onClick={() => setStep("details")}>
                 {tc("next")}
               </Button>
@@ -444,28 +461,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary }: 
             <section className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
               <p className="font-semibold text-amber-950">{t("duplicatesTitle")}</p>
               <p className="mt-1 text-sm text-amber-900">{t("duplicatesText")}</p>
-              <ul className="mt-3 space-y-2">
-                {duplicates.map((d) => (
-                  <li key={d.id} className="flex items-center gap-3 rounded-lg border bg-background p-2.5">
-                    {d.photos[0] ? (
-                      <Image src={photoUrl(d.photos[0])} alt="" width={96} height={96} className="size-12 rounded-md object-cover" unoptimized />
-                    ) : (
-                      <span className="flex size-12 items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">
-                        #{d.number}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{d.title || d.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t("metersAway", { meters: Math.round(d.distance_m) })} · <ThumbsUp className="inline size-3" /> {d.vote_count}
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => supportExisting(d)}>
-                      {t("supportThis")}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+              <DuplicateList items={duplicates} slug={municipality.slug} onSupport={supportExisting} className="mt-3" />
             </section>
           )}
 
@@ -479,5 +475,45 @@ export function NewReportWizard({ userId, municipality, categories, boundary }: 
         </main>
       )}
     </>
+  );
+}
+
+function DuplicateList({
+  items,
+  slug,
+  onSupport,
+  className,
+}: {
+  items: Duplicate[];
+  slug: string;
+  onSupport: (report: Duplicate) => void;
+  className?: string;
+}) {
+  const t = useTranslations("newReport");
+  return (
+    <ul className={cn("space-y-2", className)}>
+      {items.map((d) => (
+        <li key={d.id} className="flex items-center gap-3 rounded-lg border bg-background p-2.5">
+          {d.photos[0] ? (
+            <Image src={photoUrl(d.photos[0])} alt="" width={96} height={96} className="size-12 rounded-md object-cover" unoptimized />
+          ) : (
+            <span className="flex size-12 items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">
+              #{d.number}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <Link href={`/${slug}/reports/${d.number}`} className="block truncate text-sm font-medium hover:underline">
+              {d.title || d.description}
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              {t("metersAway", { meters: Math.round(d.distance_m) })} · <ThumbsUp className="inline size-3" /> {d.vote_count}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => onSupport(d)}>
+            {t("supportThis")}
+          </Button>
+        </li>
+      ))}
+    </ul>
   );
 }

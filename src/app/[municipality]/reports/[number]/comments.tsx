@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { BadgeCheck, Eye, EyeOff, Loader2, Trash2 } from "lucide-react";
+import { BadgeCheck, Eye, EyeOff, ImagePlus, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { TimeAgo } from "@/components/report-bits";
 import { initials } from "@/components/user-menu";
 import { FlagButton } from "@/components/flag-button";
+import { PhotoGallery } from "@/components/photo-gallery";
+import { createClient } from "@/lib/supabase/client";
+import { PHOTO_BUCKET } from "@/lib/config";
 import { addComment, deleteComment } from "@/app/actions/reports";
 import { setCommentHidden } from "@/app/actions/moderation";
 import { cn } from "@/lib/utils";
@@ -20,11 +24,16 @@ type Comment = {
   body: string;
   isOfficial: boolean;
   isHidden: boolean;
+  photos: string[];
   createdAt: string;
   authorId: string;
   authorName: string | null;
   authorAvatar: string | null;
 };
+
+type PendingPhoto = { id: string; blob: Blob; preview: string };
+
+const MAX_COMMENT_PHOTOS = 3;
 
 type Props = {
   reportId: string;
@@ -39,15 +48,66 @@ export function Comments({ reportId, path, currentUserId, canModerate, comments 
   const tc = useTranslations("common");
   const tm = useTranslations("moderation");
   const [body, setBody] = useState("");
+  const [photos, setPhotos] = useState<PendingPhoto[]>([]);
+  const [processing, setProcessing] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
+
+  async function addPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    setProcessing(true);
+    const { default: imageCompression } = await import("browser-image-compression");
+    const next: PendingPhoto[] = [];
+    for (const file of Array.from(files).slice(0, MAX_COMMENT_PHOTOS - photos.length)) {
+      try {
+        const blob = await imageCompression(file, {
+          maxWidthOrHeight: 1600,
+          maxSizeMB: 0.7,
+          fileType: "image/jpeg",
+          initialQuality: 0.82,
+          useWebWorker: true,
+        });
+        next.push({ id: crypto.randomUUID(), blob, preview: URL.createObjectURL(blob) });
+      } catch {
+        toast.error(tc("error"));
+      }
+    }
+    setPhotos((current) => [...current, ...next]);
+    setProcessing(false);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  function removePhoto(id: string) {
+    setPhotos((current) => {
+      const photo = current.find((p) => p.id === id);
+      if (photo) URL.revokeObjectURL(photo.preview);
+      return current.filter((p) => p.id !== id);
+    });
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (!body.trim() && photos.length === 0) return;
     startTransition(async () => {
-      const result = await addComment({ reportId, body }, path);
-      if (result.ok) setBody("");
-      else toast.error(tc("error"));
+      const supabase = createClient();
+      const paths: string[] = [];
+      for (const photo of photos) {
+        const storagePath = `${currentUserId}/${crypto.randomUUID()}.jpg`;
+        const { error } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(storagePath, photo.blob, { contentType: "image/jpeg" });
+        if (error) {
+          toast.error(tc("error"));
+          return;
+        }
+        paths.push(storagePath);
+      }
+      const result = await addComment({ reportId, body, photos: paths }, path);
+      if (result.ok) {
+        setBody("");
+        photos.forEach((p) => URL.revokeObjectURL(p.preview));
+        setPhotos([]);
+      } else toast.error(tc("error"));
     });
   }
 
@@ -123,7 +183,8 @@ export function Comments({ reportId, path, currentUserId, canModerate, comments 
                   )}
                 </div>
               </div>
-              <p className="mt-1 text-sm leading-relaxed whitespace-pre-line">{c.body}</p>
+              {c.body && <p className="mt-1 text-sm leading-relaxed whitespace-pre-line">{c.body}</p>}
+              {c.photos.length > 0 && <PhotoGallery paths={c.photos} className="mt-2 max-w-sm" />}
             </div>
           </li>
         ))}
@@ -140,8 +201,42 @@ export function Comments({ reportId, path, currentUserId, canModerate, comments 
             rows={3}
             aria-label={t("addComment")}
           />
-          <div className="flex justify-end">
-            <Button type="submit" disabled={pending || !body.trim()}>
+          <div className="flex flex-wrap items-center gap-2">
+            {photos.map((photo) => (
+              <div key={photo.id} className="relative size-14 overflow-hidden rounded-lg border bg-muted">
+                <Image src={photo.preview} alt="" fill className="object-cover" unoptimized />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(photo.id)}
+                  className="absolute top-0.5 right-0.5 rounded-full bg-background/90 p-0.5 text-foreground shadow-sm"
+                  aria-label={t("removePhoto")}
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+            {photos.length < MAX_COMMENT_PHOTOS && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => fileInput.current?.click()}
+                disabled={processing || pending}
+              >
+                {processing ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+                {t("addPhoto")}
+              </Button>
+            )}
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => addPhotos(e.target.files)}
+            />
+            <Button type="submit" className="ml-auto" disabled={pending || processing || (!body.trim() && photos.length === 0)}>
               {pending && <Loader2 className="animate-spin" />}
               {t("postComment")}
             </Button>

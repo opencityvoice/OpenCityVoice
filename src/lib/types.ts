@@ -14,7 +14,7 @@ export type MemberRole = Database["public"]["Enums"]["member_role"];
 
 /** Columns needed to render reports on the map and in lists. */
 export const REPORT_LIST_COLUMNS =
-  "id, number, title, description, category_id, status_id, assignee_id, lat, lng, address, photos, vote_count, comment_count, created_at, updated_at" as const;
+  "id, number, title, description, category_id, status_id, assignee_id, lat, lng, address, photos, vote_count, comment_count, duplicate_of, created_at, updated_at" as const;
 
 export type ReportListItem = Pick<
   Report,
@@ -31,6 +31,7 @@ export type ReportListItem = Pick<
   | "photos"
   | "vote_count"
   | "comment_count"
+  | "duplicate_of"
   | "created_at"
   | "updated_at"
 >;

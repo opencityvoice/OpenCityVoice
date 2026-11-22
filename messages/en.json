@@ -115,7 +115,10 @@
     "shareText": "More support helps the municipality prioritise. Share it with neighbours.",
     "shareOn": "Share on {network}",
     "shareEmail": "E-mail",
-    "shareMessage": "{title} – support this report in {municipality} on OpenCityVoice"
+    "shareMessage": "{title} – support this report in {municipality} on OpenCityVoice",
+    "addPhoto": "Add photo",
+    "removePhoto": "Remove photo",
+    "duplicateOf": "This report is a duplicate and was merged into <link>#{number}</link>. Follow it there."
   },
   "newReport": {
     "title": "Report an issue",
@@ -148,11 +151,13 @@
     "viewReport": "View report",
     "backToMap": "Back to the map",
     "duplicatesTitle": "Similar reports nearby",
-    "duplicatesText": "Is it one of these? Supporting an existing report helps more than a duplicate.",
+    "duplicatesText": "Is it one of these? Support it or add a new photo in a comment instead of submitting a new report.",
     "supportThis": "Support this one",
     "notDuplicate": "None of these, continue",
     "metersAway": "{meters} m away",
-    "rateLimited": "You have submitted many reports in a short time. Please try again later."
+    "rateLimited": "You have submitted many reports in a short time. Please try again later.",
+    "nearbyTitle": "{count, plural, one {# report already nearby} other {# reports already nearby}}",
+    "nearbyText": "If it is the same issue, support it or add a new photo in a comment."
   },
   "profile": {
     "title": "Your profile",
@@ -243,7 +248,15 @@
     "minVotesOption": "{count}+ votes",
     "recentVotes": "+{count} in 7 days",
     "notifications": "Notifications",
-    "moderation": "Moderation"
+    "moderation": "Moderation",
+    "markDuplicate": "Duplicate",
+    "markDuplicateText": "If the same issue is already reported, merge this report into it. Supporters move over and the author is notified.",
+    "mergeInto": "Merge",
+    "targetNumber": "Original report number",
+    "mergeConfirm": "Merge this report into #{number}?",
+    "merged": "Merged into #{number}.",
+    "mergeFailed": "Could not merge. Check the report number.",
+    "mergedInto": "Merged into report #{number}"
   },
   "team": {
     "title": "Team and responsible people",
@@ -361,7 +374,9 @@
     "flagReportIntro": "A user flagged report #{number} “{title}” as inappropriate.",
     "flagCommentIntro": "A user flagged a comment on report #{number} “{title}” as inappropriate.",
     "flagReason": "Reason: {reason}",
-    "openModeration": "Open moderation"
+    "openModeration": "Open moderation",
+    "mergedSubject": "Report #{number} was merged into #{target}",
+    "mergedIntro": "{municipality} merged your report #{number} into report #{target}, which describes the same issue. Your support was carried over, and you will receive status updates for #{target}."
   },
   "notFound": {
     "title": "Page not found",

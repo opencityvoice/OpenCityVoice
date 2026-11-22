@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ReportMap, type MapPin as Pin } from "@/components/map/report-map";
 import { CategoryLabel, StatusBadge, TimeAgo } from "@/components/report-bits";
 import { PhotoGallery } from "@/components/photo-gallery";
-import { assignReport, deleteReport, forwardReport, updateStatus } from "@/app/actions/manage";
+import { assignReport, deleteReport, forwardReport, mergeReport, updateStatus } from "@/app/actions/manage";
 import { createClient } from "@/lib/supabase/client";
 import { localized } from "@/i18n/config";
 
@@ -236,6 +236,7 @@ export function Dashboard(props: Props) {
             key={selected.id}
             report={selected}
             {...props}
+            mergedIntoNumber={selected.duplicate_of ? (reports.find((r) => r.id === selected.duplicate_of)?.number ?? null) : null}
             onClose={() => setSelectedId(null)}
             categoryById={categoryById}
             statusById={statusById}
@@ -255,14 +256,17 @@ export function Dashboard(props: Props) {
 
 type PanelProps = Props & {
   report: ReportListItem;
+  mergedIntoNumber: number | null;
   onClose: () => void;
   categoryById: Map<string, Category>;
   statusById: Map<string, Status>;
 };
 
+type Candidate = { id: string; number: number; title: string | null; description: string; distance_m: number };
+
 type EventRow = { id: string; type: string; note: string | null; created_at: string; to_status_id: string | null; assignee_id: string | null };
 
-function ReportPanel({ report, municipality, statuses, members, isAdmin, onClose, categoryById, statusById }: PanelProps) {
+function ReportPanel({ report, mergedIntoNumber, municipality, statuses, members, isAdmin, onClose, categoryById, statusById }: PanelProps) {
   const t = useTranslations("manage");
   const tr = useTranslations("report");
   const tc = useTranslations("common");
@@ -273,6 +277,8 @@ function ReportPanel({ report, municipality, statuses, members, isAdmin, onClose
   const [pending, startTransition] = useTransition();
   const [events, setEvents] = useState<EventRow[]>([]);
   const [forwardOpen, setForwardOpen] = useState(false);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [targetNumber, setTargetNumber] = useState("");
   const category = categoryById.get(report.category_id);
   const status = statusById.get(report.status_id);
   const publicUrl = `/${municipality.slug}/reports/${report.number}`;
@@ -285,6 +291,25 @@ function ReportPanel({ report, municipality, statuses, members, isAdmin, onClose
       .order("created_at", { ascending: false })
       .then(({ data }) => setEvents(data ?? []));
   }, [report.id, report.status_id, report.assignee_id]);
+
+  useEffect(() => {
+    if (report.duplicate_of) return;
+    createClient()
+      .rpc("nearby_reports", { p_municipality_id: municipality.id, p_lat: report.lat, p_lng: report.lng, p_radius_m: 150 })
+      .then(({ data }) => setCandidates((data ?? []).filter((r) => r.id !== report.id).slice(0, 5)));
+  }, [report.id, report.lat, report.lng, report.duplicate_of, municipality.id]);
+
+  function merge(number: number) {
+    if (!confirm(t("mergeConfirm", { number }))) return;
+    startTransition(async () => {
+      const result = await mergeReport(report.id, number);
+      if (result.ok) {
+        toast.success(t("merged", { number }));
+        setTargetNumber("");
+        router.refresh();
+      } else toast.error(t("mergeFailed"));
+    });
+  }
 
   function saveStatus() {
     startTransition(async () => {
@@ -375,6 +400,57 @@ function ReportPanel({ report, municipality, statuses, members, isAdmin, onClose
               {pending && <Loader2 className="animate-spin" />}
               {t("updateStatus")}
             </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="merge-target">{t("markDuplicate")}</Label>
+            {report.duplicate_of ? (
+              <p className="text-sm text-muted-foreground">
+                {mergedIntoNumber ? (
+                  <Link href={`/${municipality.slug}/reports/${mergedIntoNumber}`} target="_blank" className="underline underline-offset-4">
+                    {t("mergedInto", { number: mergedIntoNumber })}
+                  </Link>
+                ) : (
+                  t("mergedInto", { number: "?" })
+                )}
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">{t("markDuplicateText")}</p>
+                {candidates.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {candidates.map((c) => (
+                      <li key={c.id} className="flex items-center gap-2 rounded-lg border px-2.5 py-2 text-sm">
+                        <span className="font-mono text-xs text-muted-foreground">#{c.number}</span>
+                        <span className="min-w-0 flex-1 truncate">{c.title || c.description}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">{Math.round(c.distance_m)} m</span>
+                        <Button size="xs" variant="outline" onClick={() => merge(c.number)} disabled={pending}>
+                          {t("mergeInto")}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    id="merge-target"
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    placeholder={t("targetNumber")}
+                    value={targetNumber}
+                    onChange={(e) => setTargetNumber(e.target.value)}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => merge(Number(targetNumber))}
+                    disabled={pending || !Number.isInteger(Number(targetNumber)) || Number(targetNumber) < 1}
+                  >
+                    {t("mergeInto")}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">

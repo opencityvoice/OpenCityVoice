@@ -29,18 +29,26 @@ export async function toggleVote(reportId: string, path: string) {
   return { ok: true as const, voted: !existing };
 }
 
-const commentSchema = z.object({
-  reportId: z.uuid(),
-  body: z.string().trim().min(1).max(2000),
-});
+const commentSchema = z
+  .object({
+    reportId: z.uuid(),
+    body: z.string().trim().max(2000),
+    photos: z.array(z.string().max(300)).max(3).default([]),
+  })
+  .refine((value) => value.body.length > 0 || value.photos.length > 0);
 
-export async function addComment(input: { reportId: string; body: string }, path: string) {
+export async function addComment(input: { reportId: string; body: string; photos?: string[] }, path: string) {
   const parsed = commentSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const };
   const { supabase, userId } = await requireClaims();
-  const { error } = await supabase
-    .from("report_comments")
-    .insert({ report_id: parsed.data.reportId, body: parsed.data.body, author_id: userId });
+  const ownPhoto = new RegExp(`^${userId}/[\\w-]+\\.jpg$`);
+  if (parsed.data.photos.some((p) => !ownPhoto.test(p))) return { ok: false as const };
+  const { error } = await supabase.from("report_comments").insert({
+    report_id: parsed.data.reportId,
+    body: parsed.data.body,
+    photos: parsed.data.photos,
+    author_id: userId,
+  });
   if (error) return { ok: false as const };
   after(() => notifyAssigneeOfComment(parsed.data.reportId, userId, parsed.data.body));
   revalidatePath(path);
