@@ -54,7 +54,7 @@ export function CategoryLabel({
 }) {
   const locale = useLocale();
   return (
-    <span className={cn("inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground", className)}>
+    <span className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground", className)}>
       <span className="flex size-5 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: color }}>
         <CategoryIcon name={icon} className="size-3 text-white" />
       </span>
