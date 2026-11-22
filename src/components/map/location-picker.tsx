@@ -100,6 +100,8 @@ export function LocationPicker({ value, zoom = 17, boundary, onChange, defaultSt
     map.on("moveend", () => {
       const c = map.getCenter();
       const next: [number, number] = [Number(c.lat.toFixed(7)), Number(c.lng.toFixed(7))];
+      // Resizes also fire moveend; only report real moves.
+      if (next.join(",") === lastEmitted.current) return;
       lastEmitted.current = next.join(",");
       onChangeRef.current(next);
     });
@@ -117,6 +119,7 @@ export function LocationPicker({ value, zoom = 17, boundary, onChange, defaultSt
   useEffect(() => {
     const map = mapRef.current;
     if (!map || value.join(",") === lastEmitted.current) return;
+    lastEmitted.current = value.join(",");
     map.jumpTo({ center: [value[1], value[0]], zoom: Math.max(map.getZoom(), 16) });
   }, [value]);
 
