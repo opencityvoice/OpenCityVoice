@@ -256,9 +256,37 @@ export type Database = {
           },
         ];
       };
+      notification_reads: {
+        Row: {
+          notification_id: string;
+          read_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          notification_id: string;
+          read_at?: string;
+          user_id: string;
+        };
+        Update: {
+          notification_id?: string;
+          read_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_reads_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
+          comment_notifications: boolean;
           created_at: string;
           email_notifications: boolean;
           full_name: string | null;
@@ -269,6 +297,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           avatar_url?: string | null;
+          comment_notifications?: boolean;
           created_at?: string;
           email_notifications?: boolean;
           full_name?: string | null;
@@ -278,6 +307,7 @@ export type Database = {
         };
         Update: {
           avatar_url?: string | null;
+          comment_notifications?: boolean;
           created_at?: string;
           email_notifications?: boolean;
           full_name?: string | null;
@@ -322,6 +352,7 @@ export type Database = {
           id: string;
           is_hidden: boolean;
           is_official: boolean;
+          parent_id: string | null;
           photos: string[];
           report_id: string;
         };
@@ -333,6 +364,7 @@ export type Database = {
           id?: string;
           is_hidden?: boolean;
           is_official?: boolean;
+          parent_id?: string | null;
           photos?: string[];
           report_id: string;
         };
@@ -343,6 +375,7 @@ export type Database = {
           id?: string;
           is_hidden?: boolean;
           is_official?: boolean;
+          parent_id?: string | null;
           photos?: string[];
           report_id?: string;
         };
@@ -352,6 +385,13 @@ export type Database = {
             columns: ["author_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "report_comments_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "report_comments";
             referencedColumns: ["id"];
           },
           {
@@ -479,6 +519,40 @@ export type Database = {
           {
             foreignKeyName: "report_forwards_sent_by_fkey";
             columns: ["sent_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      report_subscriptions: {
+        Row: {
+          created_at: string;
+          report_id: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          report_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          report_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "report_subscriptions_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "reports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "report_subscriptions_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

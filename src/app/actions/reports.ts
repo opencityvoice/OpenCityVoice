@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { notifyAssigneeOfComment, notifyStaffOfNewReport } from "@/lib/notifications";
+import { notifyAssigneeOfComment, notifyCommentSubscribers, notifyStaffOfNewReport } from "@/lib/notifications";
 
 async function requireClaims() {
   const supabase = await createClient();
@@ -34,23 +34,60 @@ const commentSchema = z
     reportId: z.uuid(),
     body: z.string().trim().max(2000),
     photos: z.array(z.string().max(300)).max(3).default([]),
+    parentId: z.uuid().optional(),
   })
   .refine((value) => value.body.length > 0 || value.photos.length > 0);
 
-export async function addComment(input: { reportId: string; body: string; photos?: string[] }, path: string) {
+export async function addComment(
+  input: { reportId: string; body: string; photos?: string[]; parentId?: string },
+  path: string,
+) {
   const parsed = commentSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const };
   const { supabase, userId } = await requireClaims();
   const ownPhoto = new RegExp(`^${userId}/[\\w-]+\\.jpg$`);
   if (parsed.data.photos.some((p) => !ownPhoto.test(p))) return { ok: false as const };
+
+  if (parsed.data.parentId) {
+    const { data: parent } = await supabase
+      .from("report_comments")
+      .select("id, report_id")
+      .eq("id", parsed.data.parentId)
+      .eq("report_id", parsed.data.reportId)
+      .maybeSingle();
+    if (!parent) return { ok: false as const };
+  }
+
   const { error } = await supabase.from("report_comments").insert({
     report_id: parsed.data.reportId,
     body: parsed.data.body,
     photos: parsed.data.photos,
+    parent_id: parsed.data.parentId ?? null,
     author_id: userId,
   });
   if (error) return { ok: false as const };
-  after(() => notifyAssigneeOfComment(parsed.data.reportId, userId, parsed.data.body));
+  // Commenting subscribes the user to future comment notifications on this report.
+  await supabase
+    .from("report_subscriptions")
+    .upsert({ report_id: parsed.data.reportId, user_id: userId }, { onConflict: "report_id,user_id" });
+  after(async () => {
+    await Promise.all([
+      notifyAssigneeOfComment(parsed.data.reportId, userId, parsed.data.body),
+      notifyCommentSubscribers(parsed.data.reportId, userId, parsed.data.body),
+    ]);
+  });
+  revalidatePath(path);
+  return { ok: true as const };
+}
+
+export async function setReportSubscription(reportId: string, subscribed: boolean, path: string) {
+  const { supabase, userId } = await requireClaims();
+  const { error } = subscribed
+    ? await supabase
+        .from("report_subscriptions")
+        .upsert({ report_id: reportId, user_id: userId }, { onConflict: "report_id,user_id" })
+    : await supabase.from("report_subscriptions").delete().eq("report_id", reportId).eq("user_id", userId);
+  if (error) return { ok: false as const };
   revalidatePath(path);
   return { ok: true as const };
 }

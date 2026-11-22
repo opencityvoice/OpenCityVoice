@@ -37,6 +37,7 @@ export default async function ProfilePage() {
           email={user.email}
           fullName={user.profile.full_name ?? ""}
           emailNotifications={user.profile.email_notifications}
+          commentNotifications={user.profile.comment_notifications}
         />
 
         {(visibleMemberships.length > 0 || user.profile.is_platform_admin) && (

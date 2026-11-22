@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Brand } from "@/components/brand";
 import { UserMenu } from "@/components/user-menu";
+import { NotificationBell } from "@/components/notification-bell";
 import { findMunicipality, getCurrentUser } from "@/lib/data";
 import { singleMunicipality } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ export async function SiteHeader({ municipality: municipalityProp, isStaff, next
               {t("manage")}
             </Link>
           )}
+          {user && <NotificationBell />}
           <UserMenu
             next={next}
             user={

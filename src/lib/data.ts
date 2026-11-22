@@ -95,6 +95,19 @@ export async function getReportListItem(municipalityId: string, reportId: string
   return data;
 }
 
+/** Ids of reports in a municipality the current user has voted for. */
+export async function getVotedReportIds(municipalityId: string): Promise<string[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("report_votes")
+    .select("report_id, reports!inner(municipality_id)")
+    .eq("user_id", user.id)
+    .eq("reports.municipality_id", municipalityId);
+  return (data ?? []).map((v) => v.report_id);
+}
+
 export const getMembership = cache(async (municipalityId: string) => {
   const user = await getCurrentUser();
   if (!user) return null;

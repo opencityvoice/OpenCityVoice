@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { maplibregl } from "./maplibre";
-import { type Map as MapLibreMap } from "maplibre-gl";
+import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap } from "maplibre-gl";
 import { useTranslations } from "next-intl";
 import { MapStyleControl, boundaryPaint, isMapStyleId, mapStyle, storedMapStyle, type MapStyleId } from "./map-styles";
 
@@ -13,19 +13,39 @@ type Props = {
   boundary?: GeoJSON.Geometry | null;
   onChange: (value: [number, number]) => void;
   defaultStyle?: string;
+  /** Existing reports shown as dots; `closed` dims a dot. */
+  pins?: { id: string; lat: number; lng: number; color: string; closed?: boolean }[];
+  onPinClick?: (id: string) => void;
   className?: string;
 };
 
+type Pins = NonNullable<Props["pins"]>;
+
+function pinFeatures(pins: Pins): GeoJSON.FeatureCollection<GeoJSON.Point> {
+  return {
+    type: "FeatureCollection",
+    features: pins.map((p) => ({
+      type: "Feature",
+      properties: { id: p.id, color: p.color, closed: p.closed ? 1 : 0 },
+      geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+    })),
+  };
+}
+
 /** Map with a fixed pin in the center: the user pans the map to place the pin. */
-export function LocationPicker({ value, zoom = 17, boundary, onChange, defaultStyle, className }: Props) {
+export function LocationPicker({ value, zoom = 17, boundary, onChange, defaultStyle, pins = [], onPinClick, className }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const onChangeRef = useRef(onChange);
+  const onPinClickRef = useRef(onPinClick);
+  const pinsRef = useRef(pins);
   const lastEmitted = useRef<string>("");
   const t = useTranslations("map");
 
   useEffect(() => {
     onChangeRef.current = onChange;
+    onPinClickRef.current = onPinClick;
+    pinsRef.current = pins;
   });
 
   useEffect(() => {
@@ -52,18 +72,36 @@ export function LocationPicker({ value, zoom = 17, boundary, onChange, defaultSt
     );
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     map.on("style.load", () => {
-      if (!boundary) return;
-      map.addSource("boundary", { type: "geojson", data: { type: "Feature", properties: {}, geometry: boundary } });
+      if (boundary) {
+        map.addSource("boundary", { type: "geojson", data: { type: "Feature", properties: {}, geometry: boundary } });
+        map.addLayer({ id: "boundary-line", type: "line", source: "boundary", paint: boundaryPaint(styleId) });
+      }
+      map.addSource("reports", { type: "geojson", data: pinFeatures(pinsRef.current) });
       map.addLayer({
-        id: "boundary-line",
-        type: "line",
-        source: "boundary",
-        paint: boundaryPaint(styleId),
+        id: "pins",
+        type: "circle",
+        source: "reports",
+        paint: {
+          "circle-color": ["get", "color"],
+          "circle-opacity": ["case", ["==", ["get", "closed"], 1], 0.35, 1],
+          "circle-stroke-opacity": ["case", ["==", ["get", "closed"], 1], 0.35, 1],
+          "circle-radius": 8,
+          "circle-stroke-width": 2.5,
+          "circle-stroke-color": "#ffffff",
+        },
       });
     });
+    map.on("click", "pins", (e: MapLayerMouseEvent) => {
+      const id = e.features?.[0]?.properties?.id as string | undefined;
+      if (id) onPinClickRef.current?.(id);
+    });
+    map.on("mouseenter", "pins", () => (map.getCanvas().style.cursor = "pointer"));
+    map.on("mouseleave", "pins", () => (map.getCanvas().style.cursor = ""));
     map.on("moveend", () => {
       const c = map.getCenter();
       const next: [number, number] = [Number(c.lat.toFixed(7)), Number(c.lng.toFixed(7))];
+      // Resizes also fire moveend; only report real moves.
+      if (next.join(",") === lastEmitted.current) return;
       lastEmitted.current = next.join(",");
       onChangeRef.current(next);
     });
@@ -75,8 +113,13 @@ export function LocationPicker({ value, zoom = 17, boundary, onChange, defaultSt
   }, []);
 
   useEffect(() => {
+    (mapRef.current?.getSource("reports") as GeoJSONSource | undefined)?.setData(pinFeatures(pins));
+  }, [pins]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || value.join(",") === lastEmitted.current) return;
+    lastEmitted.current = value.join(",");
     map.jumpTo({ center: [value[1], value[0]], zoom: Math.max(map.getZoom(), 16) });
   }, [value]);
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -20,7 +21,7 @@ import { HideReportButton } from "./hide-button";
 
 type Params = PageProps<"/[municipality]/reports/[number]">;
 
-async function loadReport(slug: string, numberParam: string) {
+const loadReport = cache(async (slug: string, numberParam: string) => {
   const number = Number(numberParam);
   if (!Number.isInteger(number) || number < 1) notFound();
   const municipality = await getMunicipality(slug);
@@ -33,7 +34,7 @@ async function loadReport(slug: string, numberParam: string) {
     .maybeSingle();
   if (!report) notFound();
   return { municipality, report, supabase };
-}
+});
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { municipality: slug, number } = await params;
@@ -58,7 +59,7 @@ export default async function ReportPage({ params }: Params) {
   const locale = await getLocale();
   const user = await getCurrentUser();
 
-  const [categories, statuses, access, { data: events }, { data: comments }, { data: vote }] = await Promise.all([
+  const [categories, statuses, access, { data: events }, { data: comments }, { data: vote }, { data: original }, { data: subscription }] = await Promise.all([
     getCategories(municipality.id),
     getStatuses(municipality.id),
     getAccess(municipality.id),
@@ -69,17 +70,19 @@ export default async function ReportPage({ params }: Params) {
       .order("created_at", { ascending: false }),
     supabase
       .from("report_comments")
-      .select("id, body, photos, is_official, is_hidden, created_at, author_id, author:profiles(full_name, avatar_url)")
+      .select("id, body, photos, is_official, is_hidden, created_at, author_id, parent_id, author:profiles(full_name, avatar_url)")
       .eq("report_id", report.id)
       .order("created_at"),
     user
       ? supabase.from("report_votes").select("report_id").eq("report_id", report.id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    report.duplicate_of
+      ? supabase.from("reports").select("number").eq("id", report.duplicate_of).maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase.from("report_subscriptions").select("report_id").eq("report_id", report.id).eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
-
-  const { data: original } = report.duplicate_of
-    ? await supabase.from("reports").select("number").eq("id", report.duplicate_of).maybeSingle()
-    : { data: null };
 
   const category = categories.find((c) => c.id === report.category_id)!;
   const status = statuses.find((s) => s.id === report.status_id)!;
@@ -173,6 +176,7 @@ export default async function ReportPage({ params }: Params) {
               path={path}
               currentUserId={user?.id ?? null}
               canModerate={access.isStaff}
+              subscribed={Boolean(subscription)}
               comments={(comments ?? []).map((c) => ({
                 id: c.id,
                 body: c.body,
@@ -183,22 +187,20 @@ export default async function ReportPage({ params }: Params) {
                 authorId: c.author_id,
                 authorName: c.author?.full_name ?? null,
                 authorAvatar: c.author?.avatar_url ?? null,
+                parentId: c.parent_id,
               }))}
             />
           </article>
 
           <aside className="space-y-6">
             <section className="overflow-hidden rounded-xl border">
-              <Link href={mapHref} aria-label={t("showOnMap")} className="block">
-                <ReportMap
-                  className="pointer-events-none h-48 w-full"
-                  center={[report.lat, report.lng]}
-                  zoom={16}
-                  interactive={false}
-                  defaultStyle={municipality.default_map_style}
-                  pins={[{ id: report.id, lat: report.lat, lng: report.lng, color: category.color }]}
-                />
-              </Link>
+              <ReportMap
+                className="h-64 w-full"
+                center={[report.lat, report.lng]}
+                zoom={16}
+                defaultStyle={municipality.default_map_style}
+                pins={[{ id: report.id, lat: report.lat, lng: report.lng, color: category.color }]}
+              />
               <div className="flex items-start gap-2 p-3 text-sm">
                 <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
