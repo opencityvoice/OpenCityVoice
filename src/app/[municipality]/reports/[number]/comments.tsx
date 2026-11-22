@@ -97,6 +97,7 @@ export function Comments({ reportId, path, currentUserId, canModerate, comments 
           .from(PHOTO_BUCKET)
           .upload(storagePath, photo.blob, { contentType: "image/jpeg" });
         if (error) {
+          if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
           toast.error(tc("error"));
           return;
         }
@@ -107,7 +108,10 @@ export function Comments({ reportId, path, currentUserId, canModerate, comments 
         setBody("");
         photos.forEach((p) => URL.revokeObjectURL(p.preview));
         setPhotos([]);
-      } else toast.error(tc("error"));
+      } else {
+        if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
+        toast.error(tc("error"));
+      }
     });
   }
 

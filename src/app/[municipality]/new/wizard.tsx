@@ -190,6 +190,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         setPosition([coords.latitude, coords.longitude]);
+        setSelectedPin(null);
         setLocating(false);
       },
       () => setLocating(false),
@@ -227,6 +228,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
       const path = `${userId}/${crypto.randomUUID()}.jpg`;
       const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, photo.blob, { contentType: "image/jpeg" });
       if (error) {
+        if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
         toast.error(tc("error"));
         setSubmitting(false);
         return;
@@ -245,6 +247,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
     });
     setSubmitting(false);
     if (!result.ok) {
+      if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
       toast.error(
         result.error === "outside"
           ? t("outsideMunicipality", { municipality: municipality.name })
@@ -363,7 +366,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
                 </p>
               )}
 
-              <fieldset className="mt-3">
+              <fieldset className="mt-3 min-w-0">
                 <legend className="px-4 text-sm font-medium">{t("category")}</legend>
                 <div className="mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
                   {categories.map((c) => {
@@ -485,6 +488,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
                     setPosition(photoPosition.at);
                     setPhotoPosition(null);
                     setDuplicates(null);
+                    setSelectedPin(null);
                   }}
                 >
                   {t("usePhotoLocation")}
