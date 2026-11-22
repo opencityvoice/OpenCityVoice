@@ -132,12 +132,12 @@
     "skipPhoto": "Nadaljuj brez fotografije",
     "removePhoto": "Odstrani fotografijo",
     "processing": "Optimiziram fotografijo …",
-    "locationTitle": "Kje je?",
-    "locationText": "Premaknite zemljevid, da žebljiček kaže na točno mesto.",
+    "locationTitle": "Kje je in za kaj gre?",
+    "locationText": "Premaknite zemljevid, da žebljiček kaže na mesto, in izberite kategorijo. Pike so odprte pobude.",
     "useMyLocation": "Uporabi mojo lokacijo",
     "locationFromPhoto": "Lokacija prevzeta s fotografije",
     "outsideMunicipality": "Ta lokacija je izven območja: {municipality}.",
-    "detailsTitle": "Za kaj gre?",
+    "detailsTitle": "Opišite težavo",
     "category": "Kategorija",
     "chooseCategory": "Izberite kategorijo",
     "titleLabel": "Kratek naslov",
@@ -157,7 +157,10 @@
     "metersAway": "{meters} m stran",
     "rateLimited": "V kratkem času ste oddali veliko pobud. Poskusite znova pozneje.",
     "nearbyTitle": "{count, plural, one {V bližini je že # pobuda} two {V bližini sta že # pobudi} few {V bližini so že # pobude} other {V bližini je že # pobud}}",
-    "nearbyText": "Če gre za isto težavo, jo podprite ali v komentar dodajte novo fotografijo."
+    "nearbyText": "Če gre za isto težavo, jo podprite ali v komentar dodajte novo fotografijo.",
+    "photos": "Fotografije",
+    "photoElsewhere": "Fotografija je bila posneta {meters} m od žebljička.",
+    "usePhotoLocation": "Uporabi lokacijo s fotografije"
   },
   "profile": {
     "title": "Vaš profil",

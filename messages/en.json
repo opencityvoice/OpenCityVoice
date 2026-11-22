@@ -132,12 +132,12 @@
     "skipPhoto": "Continue without a photo",
     "removePhoto": "Remove photo",
     "processing": "Optimizing photo…",
-    "locationTitle": "Where is it?",
-    "locationText": "Move the map so the pin points to the exact spot.",
+    "locationTitle": "Where and what is it?",
+    "locationText": "Move the map so the pin points to the spot, then pick a category. Dots are open reports.",
     "useMyLocation": "Use my location",
     "locationFromPhoto": "Location taken from the photo",
     "outsideMunicipality": "This location is outside {municipality}.",
-    "detailsTitle": "What is the issue?",
+    "detailsTitle": "Describe the issue",
     "category": "Category",
     "chooseCategory": "Choose a category",
     "titleLabel": "Short title",
@@ -157,7 +157,10 @@
     "metersAway": "{meters} m away",
     "rateLimited": "You have submitted many reports in a short time. Please try again later.",
     "nearbyTitle": "{count, plural, one {# report already nearby} other {# reports already nearby}}",
-    "nearbyText": "If it is the same issue, support it or add a new photo in a comment."
+    "nearbyText": "If it is the same issue, support it or add a new photo in a comment.",
+    "photos": "Photos",
+    "photoElsewhere": "The photo was taken {meters} m from the pin.",
+    "usePhotoLocation": "Use photo location"
   },
   "profile": {
     "title": "Your profile",
