@@ -368,7 +368,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
 
               <fieldset className="mt-3 min-w-0">
                 <legend className="px-4 text-sm font-medium">{t("category")}</legend>
-                <div className="mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
+                <div className="mt-2 flex gap-2 overflow-x-auto px-4 pb-1 md:flex-wrap md:overflow-visible md:pb-0">
                   {categories.map((c) => {
                     const active = c.id === categoryId;
                     return (
