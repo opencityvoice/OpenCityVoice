@@ -109,7 +109,7 @@ export function UserMenu({ user, next = "/" }: Props) {
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem render={<button type="submit" form="sign-out" className="w-full" />}>
+        <DropdownMenuItem nativeButton render={<button type="submit" form="sign-out" className="w-full" />}>
           <LogOut />
           {t("signOut")}
         </DropdownMenuItem>
