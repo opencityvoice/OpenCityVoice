@@ -138,6 +138,23 @@
   h3 {
     letter-spacing: -0.015em;
   }
+
+  /* Interactive elements show a pointer; disabled ones show not-allowed. */
+  a[href],
+  button,
+  select,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [role="switch"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"],
+  [data-disabled] {
+    cursor: not-allowed;
+  }
 }
 
 .maplibregl-ctrl-attrib {
