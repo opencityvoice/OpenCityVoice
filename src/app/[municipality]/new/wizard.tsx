@@ -81,7 +81,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [processing, setProcessing] = useState(false);
   const [position, setPosition] = useState<[number, number]>([municipality.center_lat, municipality.center_lng]);
-  const [photoPosition, setPhotoPosition] = useState<[number, number] | null>(null);
+  const [photoPosition, setPhotoPosition] = useState<{ photoId: string; at: [number, number] } | null>(null);
   const [locating, setLocating] = useState(false);
   const [inside, setInside] = useState(true);
   const [address, setAddress] = useState<string | null>(null);
@@ -110,13 +110,6 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
         p_lng: lng,
       });
       setInside(data !== false);
-      const { data: near } = await supabase.rpc("nearby_reports", {
-        p_municipality_id: municipality.id,
-        p_lat: lat,
-        p_lng: lng,
-        p_radius_m: 50,
-      });
-      setNearby((near ?? []) as Duplicate[]);
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}&accept-language=${locale}`,
@@ -133,6 +126,21 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
     return () => clearTimeout(timer);
   }, [position, municipality.id, supabase, locale]);
 
+  useEffect(() => {
+    const [lat, lng] = position;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.rpc("nearby_reports", {
+        p_municipality_id: municipality.id,
+        p_lat: lat,
+        p_lng: lng,
+        p_radius_m: 50,
+        p_category_id: categoryId ?? undefined,
+      });
+      setNearby((data ?? []) as Duplicate[]);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [position, categoryId, municipality.id, supabase]);
+
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const pins = useMemo(
     () =>
@@ -147,7 +155,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
         })),
     [activeReports, categoryById, categoryId],
   );
-  const nearbyShown = (categoryId ? nearby.filter((d) => activeReports.find((r) => r.id === d.id)?.category_id === categoryId) : nearby).slice(0, 2);
+  const nearbyShown = nearby.slice(0, 2);
   const pinned = selectedPin ? activeReports.find((r) => r.id === selectedPin) : null;
 
   async function addFiles(files: FileList | null) {
@@ -155,10 +163,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
     setProcessing(true);
     const next: Photo[] = [];
     for (const file of Array.from(files).slice(0, MAX_PHOTOS - photos.length)) {
-      if (photos.length === 0 && next.length === 0) {
-        const gps = await readGps(file);
-        setPhotoPosition(gps && distanceM(gps, position) > PHOTO_LOCATION_THRESHOLD_M ? gps : null);
-      }
+      const gps = photos.length === 0 && next.length === 0 ? await readGps(file) : null;
       try {
         const blob = await imageCompression(file, {
           maxWidthOrHeight: 1600,
@@ -167,7 +172,9 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
           initialQuality: 0.82,
           useWebWorker: true,
         });
-        next.push({ id: crypto.randomUUID(), blob, preview: URL.createObjectURL(blob) });
+        const id = crypto.randomUUID();
+        next.push({ id, blob, preview: URL.createObjectURL(blob) });
+        if (gps && distanceM(gps, position) > PHOTO_LOCATION_THRESHOLD_M) setPhotoPosition({ photoId: id, at: gps });
       } catch {
         toast.error(tc("error"));
       }
@@ -444,7 +451,10 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
                   <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
                     <Image src={photo.preview} alt="" fill className="object-cover" unoptimized />
                     <button
-                      onClick={() => setPhotos((current) => current.filter((p) => p.id !== photo.id))}
+                      onClick={() => {
+                        setPhotos((current) => current.filter((p) => p.id !== photo.id));
+                        if (photoPosition?.photoId === photo.id) setPhotoPosition(null);
+                      }}
                       className="absolute top-1.5 right-1.5 rounded-full bg-black/60 p-1 text-white"
                       aria-label={t("removePhoto")}
                     >
@@ -467,12 +477,12 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
             {photoPosition && (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
                 <MapPin className="size-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1">{t("photoElsewhere", { meters: Math.round(distanceM(photoPosition, position)) })}</span>
+                <span className="min-w-0 flex-1">{t("photoElsewhere", { meters: Math.round(distanceM(photoPosition.at, position)) })}</span>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setPosition(photoPosition);
+                    setPosition(photoPosition.at);
                     setPhotoPosition(null);
                     setDuplicates(null);
                   }}
