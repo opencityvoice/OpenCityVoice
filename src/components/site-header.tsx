@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
 import { Brand } from "@/components/brand";
 import { UserMenu } from "@/components/user-menu";
 import { NotificationBell } from "@/components/notification-bell";
@@ -10,15 +9,13 @@ import { MunicipalityLogo } from "@/components/municipality-logo";
 
 type Props = {
   municipality?: { slug: string; name: string; logo_path?: string | null; primary_color?: string | null } | null;
-  isStaff?: boolean;
   next?: string;
   className?: string;
 };
 
-export async function SiteHeader({ municipality: municipalityProp, isStaff, next, className }: Props) {
+export async function SiteHeader({ municipality: municipalityProp, next, className }: Props) {
   const municipality = municipalityProp ?? (singleMunicipality ? await findMunicipality(singleMunicipality) : null);
   const user = await getCurrentUser();
-  const t = await getTranslations("common");
   return (
     <header className={cn("sticky top-0 z-30 border-b bg-background/95 backdrop-blur", className)}>
       <div className="flex h-14 items-center gap-3 px-4">
@@ -42,14 +39,6 @@ export async function SiteHeader({ municipality: municipalityProp, isStaff, next
           </>
         )}
         <div className="ml-auto flex items-center gap-1">
-          {municipality && isStaff && (
-            <Link
-              href={`/${municipality.slug}/manage`}
-              className="hidden rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:block"
-            >
-              {t("manage")}
-            </Link>
-          )}
           {user && <NotificationBell />}
           <UserMenu
             next={next}

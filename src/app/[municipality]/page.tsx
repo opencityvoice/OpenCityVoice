@@ -30,7 +30,7 @@ export default async function MunicipalityPage({ params, searchParams }: PagePro
 
   return (
     <div className="flex h-dvh flex-col" style={{ "--primary": municipality.primary_color } as React.CSSProperties}>
-      <SiteHeader municipality={municipality} isStaff={access.isStaff} next={`/${slug}`} />
+      <SiteHeader municipality={municipality} next={`/${slug}`} />
       <ExplorerView
         municipality={municipality}
         categories={categories}

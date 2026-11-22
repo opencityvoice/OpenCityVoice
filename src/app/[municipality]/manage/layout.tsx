@@ -22,7 +22,7 @@ export default async function ManageLayout({ children, params }: LayoutProps<"/[
 
   return (
     <div className="flex h-dvh flex-col" style={{ "--primary": municipality.primary_color } as React.CSSProperties}>
-      <SiteHeader municipality={municipality} isStaff={false} next={`/${slug}/manage`} className="static" />
+      <SiteHeader municipality={municipality} next={`/${slug}/manage`} className="static" />
       <ManageNav links={links} />
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>

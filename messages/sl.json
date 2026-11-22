@@ -27,7 +27,6 @@
     "required": "Obvezno",
     "none": "Brez",
     "search": "Iskanje",
-    "manage": "Upravljanje",
     "reportIssue": "Prijavi težavo",
     "poweredBy": "Deluje na OpenCityVoice, odprta koda"
   },

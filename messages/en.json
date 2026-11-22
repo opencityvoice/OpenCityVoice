@@ -27,7 +27,6 @@
     "required": "Required",
     "none": "None",
     "search": "Search",
-    "manage": "Manage",
     "reportIssue": "Report an issue",
     "poweredBy": "Powered by OpenCityVoice, open source"
   },

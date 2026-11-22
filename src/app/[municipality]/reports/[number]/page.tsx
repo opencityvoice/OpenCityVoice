@@ -93,7 +93,7 @@ export default async function ReportPage({ params }: Params) {
 
   return (
     <div style={{ "--primary": municipality.primary_color } as React.CSSProperties}>
-      <SiteHeader municipality={municipality} isStaff={access.isStaff} next={path} />
+      <SiteHeader municipality={municipality} next={path} />
       <main className="mx-auto max-w-5xl px-4 pt-4 pb-16 sm:pt-6">
         <Link
           href={mapHref}
