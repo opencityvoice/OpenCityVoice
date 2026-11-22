@@ -59,7 +59,7 @@ export default async function ReportPage({ params }: Params) {
   const locale = await getLocale();
   const user = await getCurrentUser();
 
-  const [categories, statuses, access, { data: events }, { data: comments }, { data: vote }, { data: original }] = await Promise.all([
+  const [categories, statuses, access, { data: events }, { data: comments }, { data: vote }, { data: original }, { data: subscription }] = await Promise.all([
     getCategories(municipality.id),
     getStatuses(municipality.id),
     getAccess(municipality.id),
@@ -78,6 +78,9 @@ export default async function ReportPage({ params }: Params) {
       : Promise.resolve({ data: null }),
     report.duplicate_of
       ? supabase.from("reports").select("number").eq("id", report.duplicate_of).maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase.from("report_subscriptions").select("report_id").eq("report_id", report.id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -173,6 +176,7 @@ export default async function ReportPage({ params }: Params) {
               path={path}
               currentUserId={user?.id ?? null}
               canModerate={access.isStaff}
+              subscribed={Boolean(subscription)}
               comments={(comments ?? []).map((c) => ({
                 id: c.id,
                 body: c.body,

@@ -13,6 +13,7 @@ import { TimeAgo } from "@/components/report-bits";
 import { initials } from "@/components/user-menu";
 import { FlagButton } from "@/components/flag-button";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { SubscribeButton } from "./subscribe-button";
 import { createClient } from "@/lib/supabase/client";
 import { PHOTO_BUCKET } from "@/lib/config";
 import { addComment, deleteComment } from "@/app/actions/reports";
@@ -42,6 +43,7 @@ type Props = {
   currentUserId: string | null;
   canModerate: boolean;
   comments: Comment[];
+  subscribed: boolean;
 };
 
 type FormProps = {
@@ -184,7 +186,7 @@ function CommentForm({ reportId, path, userId, parentId, onDone }: FormProps) {
   );
 }
 
-export function Comments({ reportId, path, currentUserId, canModerate, comments }: Props) {
+export function Comments({ reportId, path, currentUserId, canModerate, comments, subscribed }: Props) {
   const t = useTranslations("report");
   const tc = useTranslations("common");
   const tm = useTranslations("moderation");
@@ -324,9 +326,12 @@ export function Comments({ reportId, path, currentUserId, canModerate, comments 
 
   return (
     <section id="comments" className="mt-10 scroll-mt-20 border-t pt-8">
-      <h2 className="font-semibold">
-        {t("comments")} <span className="font-normal text-muted-foreground">{comments.length}</span>
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-semibold">
+          {t("comments")} <span className="font-normal text-muted-foreground">{comments.length}</span>
+        </h2>
+        <SubscribeButton reportId={reportId} subscribed={subscribed} signedIn={Boolean(currentUserId)} path={path} />
+      </div>
 
       <ul className="mt-5 space-y-5">
         {roots.map((comment) => (

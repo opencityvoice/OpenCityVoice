@@ -8,11 +8,16 @@ import { siteUrl } from "@/lib/config";
 async function recipient(admin: ReturnType<typeof createAdminClient>, userId: string) {
   const [{ data: user }, { data: profile }] = await Promise.all([
     admin.auth.admin.getUserById(userId),
-    admin.from("profiles").select("locale, email_notifications").eq("id", userId).single(),
+    admin.from("profiles").select("locale, email_notifications, comment_notifications").eq("id", userId).single(),
   ]);
   const email = user?.user?.email;
   return email
-    ? { email, locale: profile?.locale ?? configuredLocale() ?? defaultLocale, emailNotifications: profile?.email_notifications ?? true }
+    ? {
+        email,
+        locale: profile?.locale ?? configuredLocale() ?? defaultLocale,
+        emailNotifications: profile?.email_notifications ?? true,
+        commentNotifications: profile?.comment_notifications ?? true,
+      }
     : null;
 }
 
@@ -148,7 +153,7 @@ export async function notifyCommentSubscribers(reportId: string, commenterId: st
   await Promise.all(
     subs.map(async ({ user_id }) => {
       const to = await recipient(admin, user_id);
-      if (!to?.emailNotifications) return;
+      if (!to?.commentNotifications) return;
       const t = await getTranslations({ locale: to.locale, namespace: "email" });
       await sendEmail({
         to: to.email,

@@ -80,6 +80,18 @@ export async function addComment(
   return { ok: true as const };
 }
 
+export async function setReportSubscription(reportId: string, subscribed: boolean, path: string) {
+  const { supabase, userId } = await requireClaims();
+  const { error } = subscribed
+    ? await supabase
+        .from("report_subscriptions")
+        .upsert({ report_id: reportId, user_id: userId }, { onConflict: "report_id,user_id" })
+    : await supabase.from("report_subscriptions").delete().eq("report_id", reportId).eq("user_id", userId);
+  if (error) return { ok: false as const };
+  revalidatePath(path);
+  return { ok: true as const };
+}
+
 export async function deleteComment(commentId: string, path: string) {
   const { supabase } = await requireClaims();
   const { error } = await supabase.from("report_comments").delete().eq("id", commentId);

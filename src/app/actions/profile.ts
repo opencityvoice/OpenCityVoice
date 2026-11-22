@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 const schema = z.object({
   fullName: z.string().trim().max(80),
   emailNotifications: z.boolean(),
+  commentNotifications: z.boolean(),
 });
 
 export async function updateProfile(input: z.input<typeof schema>) {
@@ -17,19 +18,15 @@ export async function updateProfile(input: z.input<typeof schema>) {
   if (!data?.claims) return { ok: false as const };
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name: parsed.data.fullName || null, email_notifications: parsed.data.emailNotifications })
+    .update({
+      full_name: parsed.data.fullName || null,
+      email_notifications: parsed.data.emailNotifications,
+      comment_notifications: parsed.data.commentNotifications,
+    })
     .eq("id", data.claims.sub);
   if (error) return { ok: false as const };
   revalidatePath("/", "layout");
   return { ok: true as const };
-}
-
-export async function unsubscribeFromReport(reportId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) return;
-  await supabase.from("report_subscriptions").delete().eq("report_id", reportId).eq("user_id", data.claims.sub);
-  revalidatePath("/profile");
 }
 
 const preferencesSchema = z.object({
