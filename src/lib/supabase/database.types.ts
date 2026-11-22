@@ -256,6 +256,33 @@ export type Database = {
           },
         ];
       };
+      notification_reads: {
+        Row: {
+          notification_id: string;
+          read_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          notification_id: string;
+          read_at?: string;
+          user_id: string;
+        };
+        Update: {
+          notification_id?: string;
+          read_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_reads_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;

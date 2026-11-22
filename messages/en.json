@@ -393,6 +393,17 @@
     "detailed": "Detailed",
     "satellite": "Satellite"
   },
+  "alerts": {
+    "title": "Notifications",
+    "loading": "Loading…",
+    "empty": "No notifications yet",
+    "comment": "New comment by {name}",
+    "statusChanged": "Status changed to {status}",
+    "statusChangedGeneric": "Status changed",
+    "someone": "Someone",
+    "markAllRead": "Mark all as read",
+    "settings": "Notification settings"
+  },
   "notifications": {
     "title": "Notifications",
     "intro": "Choose which e-mails you receive as a member of the {municipality} team.",

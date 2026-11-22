@@ -393,6 +393,17 @@
     "detailed": "Podroben",
     "satellite": "Satelitski"
   },
+  "alerts": {
+    "title": "Obvestila",
+    "loading": "Nalaganje …",
+    "empty": "Zaenkrat ni obvestil",
+    "comment": "Nov komentar: {name}",
+    "statusChanged": "Status: {status}",
+    "statusChangedGeneric": "Status se je spremenil",
+    "someone": "Nekdo",
+    "markAllRead": "Označi vsa kot prebrana",
+    "settings": "Nastavitve obvestil"
+  },
   "notifications": {
     "title": "Obvestila",
     "intro": "Izberite, katera e-poštna obvestila prejemate kot član ekipe ({municipality}).",
