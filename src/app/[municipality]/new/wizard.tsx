@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShareButtons } from "../reports/[number]/share-button";
 import { useLocale, useTranslations } from "next-intl";
-import imageCompression from "browser-image-compression";
+import { compressPhoto, PHOTO_EXT, PHOTO_MIME } from "@/lib/photo-upload";
 import { ArrowLeft, Camera, CircleCheck, ImagePlus, Loader2, LocateFixed, MapPin, ThumbsUp, TriangleAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -165,13 +165,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
     for (const file of Array.from(files).slice(0, MAX_PHOTOS - photos.length)) {
       const gps = photos.length === 0 && next.length === 0 ? await readGps(file) : null;
       try {
-        const blob = await imageCompression(file, {
-          maxWidthOrHeight: 1600,
-          maxSizeMB: 0.7,
-          fileType: "image/jpeg",
-          initialQuality: 0.82,
-          useWebWorker: true,
-        });
+        const blob = await compressPhoto(file);
         const id = crypto.randomUUID();
         next.push({ id, blob, preview: URL.createObjectURL(blob) });
         if (gps && distanceM(gps, position) > PHOTO_LOCATION_THRESHOLD_M) setPhotoPosition({ photoId: id, at: gps });
@@ -225,8 +219,8 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
 
     const paths: string[] = [];
     for (const photo of photos) {
-      const path = `${userId}/${crypto.randomUUID()}.jpg`;
-      const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, photo.blob, { contentType: "image/jpeg" });
+      const path = `${userId}/${crypto.randomUUID()}.${PHOTO_EXT}`;
+      const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, photo.blob, { contentType: PHOTO_MIME });
       if (error) {
         if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
         toast.error(tc("error"));
@@ -449,7 +443,7 @@ export function NewReportWizard({ userId, municipality, categories, boundary, ac
                 <span className="text-sm font-medium text-foreground">{processing ? t("processing") : t("takePhoto")}</span>
               </button>
             ) : (
-              <div className="mt-2 grid grid-cols-4 gap-2">
+              <div className="mt-2 grid grid-cols-5 gap-2">
                 {photos.map((photo) => (
                   <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
                     <Image src={photo.preview} alt="" fill className="object-cover" unoptimized />

@@ -29,7 +29,7 @@ export const LOGO_BUCKET = "municipality-logos";
 export function logoUrl(path: string) {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${path}`;
 }
-export const MAX_PHOTOS = 4;
+export const MAX_PHOTOS = 5;
 
 export function photoUrl(path: string) {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`;

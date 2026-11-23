@@ -159,6 +159,21 @@
     "photoElsewhere": "The photo was taken {meters} m from the pin.",
     "usePhotoLocation": "Use photo location"
   },
+  "editReport": {
+    "title": "Edit report",
+    "location": "Location",
+    "useMyLocation": "Use my location",
+    "photos": "Photos",
+    "takePhoto": "Take or choose a photo",
+    "addAnother": "Add another",
+    "removePhoto": "Remove photo",
+    "processing": "Optimizing photo…",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the issue. Where exactly is it, since when, how dangerous is it?",
+    "saving": "Saving…",
+    "outsideMunicipality": "This location is outside {municipality}.",
+    "locked": "This report can no longer be edited."
+  },
   "profile": {
     "title": "Your profile",
     "name": "Name",

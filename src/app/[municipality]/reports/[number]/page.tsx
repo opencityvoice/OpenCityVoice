@@ -3,8 +3,9 @@ import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowLeft, Copy, EyeOff, MapPin } from "lucide-react";
+import { ArrowLeft, Copy, EyeOff, MapPin, Pencil } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import { Button } from "@/components/ui/button";
 import { ReportMap } from "@/components/map/report-map";
 import { CategoryLabel, StatusBadge, TimeAgo } from "@/components/report-bits";
 import { PhotoGallery } from "@/components/photo-gallery";
@@ -55,6 +56,7 @@ export default async function ReportPage({ params }: Params) {
   const { municipality: slug, number } = await params;
   const { municipality, report, supabase } = await loadReport(slug, number);
   const t = await getTranslations("report");
+  const tc = await getTranslations("common");
   const tm = await getTranslations("moderation");
   const locale = await getLocale();
   const user = await getCurrentUser();
@@ -151,6 +153,12 @@ export default async function ReportPage({ params }: Params) {
                   signedIn={Boolean(user)}
                   path={path}
                 />
+              )}
+              {user?.id === report.author_id && status.is_initial && !report.is_hidden && (
+                <Button variant="outline" render={<Link href={`${path}/edit`} />} nativeButton={false}>
+                  <Pencil />
+                  {tc("edit")}
+                </Button>
               )}
               <div className="ml-auto">
                 {access.isStaff ? (

@@ -16,6 +16,7 @@ import { PhotoGallery } from "@/components/photo-gallery";
 import { SubscribeButton } from "./subscribe-button";
 import { createClient } from "@/lib/supabase/client";
 import { PHOTO_BUCKET } from "@/lib/config";
+import { compressPhoto, PHOTO_EXT, PHOTO_MIME } from "@/lib/photo-upload";
 import { addComment, deleteComment } from "@/app/actions/reports";
 import { setCommentHidden } from "@/app/actions/moderation";
 import { cn } from "@/lib/utils";
@@ -66,17 +67,10 @@ function CommentForm({ reportId, path, userId, parentId, onDone }: FormProps) {
   async function addPhotos(files: FileList | null) {
     if (!files?.length) return;
     setProcessing(true);
-    const { default: imageCompression } = await import("browser-image-compression");
     const next: PendingPhoto[] = [];
     for (const file of Array.from(files).slice(0, MAX_COMMENT_PHOTOS - photos.length)) {
       try {
-        const blob = await imageCompression(file, {
-          maxWidthOrHeight: 1600,
-          maxSizeMB: 0.7,
-          fileType: "image/jpeg",
-          initialQuality: 0.82,
-          useWebWorker: true,
-        });
+        const blob = await compressPhoto(file);
         next.push({ id: crypto.randomUUID(), blob, preview: URL.createObjectURL(blob) });
       } catch {
         toast.error(tc("error"));
@@ -102,10 +96,10 @@ function CommentForm({ reportId, path, userId, parentId, onDone }: FormProps) {
       const supabase = createClient();
       const paths: string[] = [];
       for (const photo of photos) {
-        const storagePath = `${userId}/${crypto.randomUUID()}.jpg`;
+        const storagePath = `${userId}/${crypto.randomUUID()}.${PHOTO_EXT}`;
         const { error } = await supabase.storage
           .from(PHOTO_BUCKET)
-          .upload(storagePath, photo.blob, { contentType: "image/jpeg" });
+          .upload(storagePath, photo.blob, { contentType: PHOTO_MIME });
         if (error) {
           if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
           toast.error(tc("error"));

@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { notifyAssigneeOfComment, notifyCommentSubscribers, notifyStaffOfNewReport } from "@/lib/notifications";
+import { MAX_PHOTOS } from "@/lib/config";
 
 async function requireClaims() {
   const supabase = await createClient();
@@ -45,7 +46,7 @@ export async function addComment(
   const parsed = commentSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const };
   const { supabase, userId } = await requireClaims();
-  const ownPhoto = new RegExp(`^${userId}/[\\w-]+\\.jpg$`);
+  const ownPhoto = new RegExp(`^${userId}/[\\w-]+\\.(jpe?g|png|webp)$`);
   if (parsed.data.photos.some((p) => !ownPhoto.test(p))) return { ok: false as const };
 
   if (parsed.data.parentId) {
@@ -108,7 +109,7 @@ const createReportSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   address: z.string().trim().max(300).optional(),
-  photos: z.array(z.string().max(300)).max(4),
+  photos: z.array(z.string().max(300)).max(MAX_PHOTOS),
 });
 
 export type CreateReportResult =
@@ -122,7 +123,7 @@ export async function createReport(input: z.input<typeof createReportSchema>): P
   const data = parsed.data;
 
   // Photos must live in the author's own storage folder.
-  if (data.photos.some((p) => !p.startsWith(`${userId}/`))) return { ok: false, error: "invalid" };
+  if (data.photos.some((p) => !p.startsWith(`${userId}/`) || p.includes(".."))) return { ok: false, error: "invalid" };
 
   const { data: inside } = await supabase.rpc("point_in_municipality", {
     p_municipality_id: data.municipalityId,
@@ -158,4 +159,70 @@ export async function createReport(input: z.input<typeof createReportSchema>): P
   after(() => notifyStaffOfNewReport(report.id));
   revalidatePath(`/`, "layout");
   return { ok: true, number: report.number };
+}
+
+const updateReportSchema = z.object({
+  reportId: z.uuid(),
+  title: z.string().trim().max(120).optional(),
+  description: z.string().trim().min(3).max(4000),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  address: z.string().trim().max(300).optional(),
+  photos: z.array(z.string().max(300)).max(MAX_PHOTOS),
+});
+
+export type UpdateReportResult =
+  | { ok: true; removedPhotos: string[] }
+  | { ok: false; error: "invalid" | "forbidden" | "locked" | "outside" | "failed" };
+
+export async function updateReport(input: z.input<typeof updateReportSchema>): Promise<UpdateReportResult> {
+  const parsed = updateReportSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { supabase, userId } = await requireClaims();
+  const data = parsed.data;
+
+  if (data.photos.some((p) => !p.startsWith(`${userId}/`) || p.includes(".."))) return { ok: false, error: "invalid" };
+
+  const { data: report } = await supabase
+    .from("reports")
+    .select("id, author_id, status_id, is_hidden, photos, number, municipality_id, municipality:municipalities(slug), status:statuses(is_initial)")
+    .eq("id", data.reportId)
+    .maybeSingle();
+  if (!report || report.author_id !== userId) return { ok: false, error: "forbidden" };
+  // Editable only while the report is still new; hidden reports stay locked (RLS enforces this too).
+  if (report.is_hidden || !report.status?.is_initial) return { ok: false, error: "locked" };
+
+  const { data: inside } = await supabase.rpc("point_in_municipality", {
+    p_municipality_id: report.municipality_id,
+    p_lat: data.lat,
+    p_lng: data.lng,
+  });
+  if (inside === false) return { ok: false, error: "outside" };
+
+  const { data: updated, error } = await supabase
+    .from("reports")
+    .update({
+      title: data.title || null,
+      description: data.description,
+      lat: data.lat,
+      lng: data.lng,
+      address: data.address || null,
+      photos: data.photos,
+    })
+    .eq("id", report.id)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("[updateReport]", error);
+    return { ok: false, error: "failed" };
+  }
+  // The status may have moved between our check and the update; RLS filtered the row.
+  if (!updated) return { ok: false, error: "locked" };
+
+  const slug = report.municipality?.slug;
+  if (slug) {
+    revalidatePath(`/${slug}/reports/${report.number}`);
+    revalidatePath(`/${slug}`);
+  }
+  return { ok: true, removedPhotos: report.photos.filter((p) => !data.photos.includes(p)) };
 }

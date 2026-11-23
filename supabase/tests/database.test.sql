@@ -1,7 +1,7 @@
 -- Database tests (pgTAP). Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(37);
+select plan(44);
 
 -- Seed ids
 \set lj '\'10000000-0000-4000-8000-000000000001\''
@@ -61,11 +61,39 @@ select ok(
   'nearby_reports finds open reports within 50 m');
 
 -- Citizens cannot change the status
-update public.reports set status_id = (select closed_status from ctx) where description = 'Broken bench in the park';
+select throws_ok(
+  format('update public.reports set status_id = %L where description = %L',
+    (select closed_status from ctx), 'Broken bench in the park'),
+  'P0001', 'Not allowed to change these report fields', 'citizens cannot change the status');
+
+-- The author can fix content while the report still has the initial status
+select lives_ok(
+  format($f$update public.reports
+            set lat = 46.0513, lng = 14.5053, address = 'Tivoli park',
+                photos = array[%L || '/edit.webp']
+          where description = 'Broken bench in the park'$f$, :citizen),
+  'the author can edit their new report');
 select is(
-  (select status_id from public.reports where description = 'Broken bench in the park'),
-  (select initial_status from ctx),
-  'citizens cannot change the status');
+  (select address from public.reports where description = 'Broken bench in the park'),
+  'Tivoli park',
+  'the edit is saved');
+select throws_ok(
+  format($f$update public.reports set category_id =
+    (select id from public.categories where municipality_id = %L order by sort_order offset 1 limit 1)
+    where description = 'Broken bench in the park'$f$, :lj),
+  'P0001', 'Not allowed to change these report fields', 'the author cannot change the category');
+select throws_ok(
+  $$update public.reports set is_hidden = true where description = 'Broken bench in the park'$$,
+  'P0001', 'Not allowed to change these report fields', 'the author cannot hide their report');
+select throws_ok(
+  format($f$update public.reports set photos = array[%L || '/a.webp', %L || '/b.webp', %L || '/c.webp',
+    %L || '/d.webp', %L || '/e.webp', %L || '/f.webp'] where description = 'Broken bench in the park'$f$,
+    :citizen, :citizen, :citizen, :citizen, :citizen, :citizen),
+  '23514', null, 'a report cannot hold more than five photos');
+select throws_ok(
+  format($f$update public.reports set photos = array[%L || '/stolen.webp']
+    where description = 'Broken bench in the park'$f$, :staff),
+  'P0001', 'Report photos must live in the author''s own folder', 'photos must live in the author folder');
 
 -- Pending members are not staff
 select set_config('request.jwt.claims', json_build_object('sub', :pending, 'role', 'authenticated')::text, true);
@@ -88,6 +116,15 @@ select is(
     where r.description = 'Broken bench in the park' and e.type = 'status_changed'),
   1,
   'status change is recorded in the timeline');
+
+-- Once the status moved, the author can no longer edit
+select set_config('request.jwt.claims', json_build_object('sub', :citizen, 'role', 'authenticated')::text, true);
+update public.reports set description = 'Too late' where description = 'Broken bench in the park';
+select is(
+  (select description from public.reports where address = 'Tivoli park'),
+  'Broken bench in the park',
+  'the author can no longer edit after the status changed');
+select set_config('request.jwt.claims', json_build_object('sub', :staff, 'role', 'authenticated')::text, true);
 
 -- Closed reports are not offered as duplicates
 select ok(

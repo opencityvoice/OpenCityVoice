@@ -159,6 +159,21 @@
     "photoElsewhere": "Fotografija je bila posneta {meters} m od žebljička.",
     "usePhotoLocation": "Uporabi lokacijo s fotografije"
   },
+  "editReport": {
+    "title": "Uredi pobudo",
+    "location": "Lokacija",
+    "useMyLocation": "Uporabi mojo lokacijo",
+    "photos": "Fotografije",
+    "takePhoto": "Fotografiraj ali izberi sliko",
+    "addAnother": "Dodaj še eno",
+    "removePhoto": "Odstrani fotografijo",
+    "processing": "Optimiziram fotografijo …",
+    "description": "Opis",
+    "descriptionPlaceholder": "Opišite težavo. Kje točno je, od kdaj, kako nevarna je?",
+    "saving": "Shranjujem …",
+    "outsideMunicipality": "Ta lokacija je izven območja: {municipality}.",
+    "locked": "Te pobude ni več mogoče urejati."
+  },
   "profile": {
     "title": "Vaš profil",
     "name": "Ime",
