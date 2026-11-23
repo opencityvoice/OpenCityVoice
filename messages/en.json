@@ -61,6 +61,8 @@
     "password": "Password",
     "sendLink": "Send sign-in link",
     "signInWithPassword": "Sign in with password",
+    "demoHint": "Demo account — try it out:",
+    "demoFill": "Fill in demo credentials",
     "checkEmail": "Check your inbox",
     "checkEmailText": "We sent a sign-in link and a 6-digit code to {email}.",
     "code": "6-digit code",

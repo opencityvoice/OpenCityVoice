@@ -15,10 +15,11 @@ type Props = {
   next: string;
   providers: OAuthProvider[];
   passwordLogin: boolean;
+  demoLogin: { email: string; password: string } | null;
   initialError: string | null;
 };
 
-export function LoginForm({ next, providers, passwordLogin, initialError }: Props) {
+export function LoginForm({ next, providers, passwordLogin, demoLogin, initialError }: Props) {
   const t = useTranslations("auth");
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -143,6 +144,25 @@ export function LoginForm({ next, providers, passwordLogin, initialError }: Prop
             <span className="h-px flex-1 bg-border" />
           </div>
         </>
+      )}
+
+      {passwordLogin && demoLogin && (
+        <div className="rounded-xl border border-dashed bg-muted/40 p-3 text-sm">
+          <p className="font-medium">{t("demoHint")}</p>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">
+            {demoLogin.email} / {demoLogin.password}
+          </p>
+          <button
+            type="button"
+            className="mt-1.5 text-xs font-medium text-primary underline underline-offset-2"
+            onClick={() => {
+              setEmail(demoLogin.email);
+              setPassword(demoLogin.password);
+            }}
+          >
+            {t("demoFill")}
+          </button>
+        </div>
       )}
 
       <form onSubmit={sendLink} className="space-y-3">

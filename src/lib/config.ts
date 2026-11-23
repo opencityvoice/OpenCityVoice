@@ -16,6 +16,10 @@ export const singleMunicipality = process.env.SINGLE_MUNICIPALITY?.trim() || nul
 
 export const passwordLoginEnabled = process.env.NEXT_PUBLIC_ENABLE_PASSWORD_LOGIN === "true";
 
+/** Demo account shown as a hint on /login when password login is enabled. Public by design. */
+export const demoLoginEmail = process.env.NEXT_PUBLIC_DEMO_LOGIN_EMAIL?.trim() || null;
+export const demoLoginPassword = process.env.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD?.trim() || null;
+
 export const providerLabels: Record<OAuthProvider, string> = {
   google: "Google",
   facebook: "Facebook",

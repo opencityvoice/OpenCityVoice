@@ -61,6 +61,8 @@
     "password": "Geslo",
     "sendLink": "Pošlji povezavo za prijavo",
     "signInWithPassword": "Prijava z geslom",
+    "demoHint": "Demo račun — za preizkus:",
+    "demoFill": "Izpolni demo podatke",
     "checkEmail": "Preverite e-pošto",
     "checkEmailText": "Na {email} smo poslali povezavo za prijavo in 6-mestno kodo.",
     "code": "6-mestna koda",
