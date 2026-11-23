@@ -2,13 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "./database.types";
+import { supabaseUrl, supabasePublishableKey, supabaseSecretKey } from "@/lib/config";
 
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    supabaseUrl,
+    supabasePublishableKey,
     {
       cookies: {
         getAll() {
@@ -29,8 +30,8 @@ export async function createClient() {
 /** Service-role client. Bypasses RLS: only use on the server after an explicit permission check. */
 export function createAdminClient() {
   return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SECRET_KEY!,
+    supabaseUrl,
+    supabaseSecretKey,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 }

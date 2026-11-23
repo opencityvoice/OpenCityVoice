@@ -23,6 +23,12 @@ export const providerLabels: Record<OAuthProvider, string> = {
   azure: "Microsoft",
 };
 
+// Accept both our names and the ones synced by the Supabase <-> Vercel integration.
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+export const supabasePublishableKey = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!;
+export const supabaseSecretKey = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)!;
+
 export const PHOTO_BUCKET = "report-photos";
 export const LOGO_BUCKET = "municipality-logos";
 
@@ -32,7 +38,7 @@ export function logoUrl(path: string) {
 export const MAX_PHOTOS = 5;
 
 export function photoUrl(path: string) {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`;
+  return `${supabaseUrl}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`;
 }
 
 /** Only allow same-origin relative redirects. */

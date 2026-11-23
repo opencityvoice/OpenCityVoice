@@ -38,6 +38,7 @@ pnpm install
 supabase start            # Postgres, Auth, Storage and Mailpit in Docker
 cp .env.example .env.local
 # Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY from `supabase status`
+# (NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY from the Supabase Vercel integration also work)
 # Set SMTP_URL=smtp://127.0.0.1:54325 and NEXT_PUBLIC_ENABLE_PASSWORD_LOGIN=true
 pnpm dev
 ```
