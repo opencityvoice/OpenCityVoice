@@ -15,6 +15,7 @@ type Props = {
   boundary?: GeoJSON.Geometry | null;
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
+  focus?: { lat: number; lng: number; zoom?: number; padding?: { top?: number; right?: number; bottom?: number; left?: number } } | null;
   interactive?: boolean;
   defaultStyle?: string;
   className?: string;
@@ -32,7 +33,7 @@ function toFeatureCollection(pins: MapPin[]): GeoJSON.FeatureCollection<GeoJSON.
   };
 }
 
-export function ReportMap({ center, zoom, pins, boundary, selectedId, onSelect, interactive = true, defaultStyle, className }: Props) {
+export function ReportMap({ center, zoom, pins, boundary, selectedId, onSelect, focus, interactive = true, defaultStyle, className }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const loaded = useRef(false);
@@ -193,6 +194,19 @@ export function ReportMap({ center, zoom, pins, boundary, selectedId, onSelect, 
       if (loaded.current && map.getSource("reports")) map.setFeatureState({ source: "reports", id: selectedId }, { selected: false });
     };
   }, [selectedId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focus) return;
+    const apply = () =>
+      map.easeTo({
+        center: [focus.lng, focus.lat],
+        zoom: Math.max(map.getZoom(), focus.zoom ?? map.getZoom()),
+        ...(focus.padding ? { padding: { top: 0, right: 0, bottom: 0, left: 0, ...focus.padding } } : {}),
+      });
+    if (loaded.current) apply();
+    else map.once("load", apply);
+  }, [focus]);
 
   return (
     <div className={className}>

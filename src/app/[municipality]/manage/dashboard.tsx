@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { ExternalLink, Forward, Link2, List, Loader2, Map as MapIcon, MapPin, Search, ThumbsUp, Trash2, TrendingUp, X } from "lucide-react";
+import { ExternalLink, Forward, Link2, List, Loader2, Map as MapIcon, MapPin, MessageSquare, Search, ThumbsUp, Trash2, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,10 @@ export function Dashboard(props: Props) {
   const locale = useLocale();
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [selectedId, setSelectedId] = useState<string | null>(props.initialSelected);
+  const [focus, setFocus] = useState<{ lat: number; lng: number; zoom?: number; padding?: { right?: number } } | null>(() => {
+    const r = props.initialSelected ? reports.find((x) => x.id === props.initialSelected) : null;
+    return r ? { lat: r.lat, lng: r.lng, zoom: 16 } : null;
+  });
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -109,6 +113,11 @@ export function Dashboard(props: Props) {
 
   const selected = selectedId ? reports.find((r) => r.id === selectedId) ?? null : null;
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
+
+  function selectReport(r: ReportListItem) {
+    setSelectedId(r.id);
+    setFocus({ lat: r.lat, lng: r.lng, zoom: 16, padding: { right: window.innerWidth >= 768 ? 420 : 0 } });
+  }
   const hasFilters = JSON.stringify(filters) !== JSON.stringify(emptyFilters);
 
   return (
@@ -186,7 +195,7 @@ export function Dashboard(props: Props) {
               return (
                 <li key={r.id}>
                   <button
-                    onClick={() => setSelectedId(r.id)}
+                    onClick={() => selectReport(r)}
                     className={cn("flex w-full gap-3 px-4 py-3 text-left hover:bg-muted/60", selectedId === r.id && "bg-muted")}
                   >
                     <div className="min-w-0 flex-1">
@@ -194,6 +203,7 @@ export function Dashboard(props: Props) {
                         <span className="font-mono">#{r.number}</span>
                         <TimeAgo date={r.created_at} />
                         <span className="inline-flex items-center gap-0.5"><ThumbsUp className="size-3" />{r.vote_count}</span>
+                        <span className="inline-flex items-center gap-0.5"><MessageSquare className="size-3" />{r.comment_count}</span>
                         {(recentVotes[r.id] ?? 0) > 0 && (
                           <span className="inline-flex items-center gap-0.5 font-medium text-emerald-700">
                             <TrendingUp className="size-3" />
@@ -228,6 +238,7 @@ export function Dashboard(props: Props) {
             boundary={boundary}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            focus={focus}
           />
         </section>
 
