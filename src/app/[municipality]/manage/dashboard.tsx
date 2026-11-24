@@ -105,10 +105,10 @@ export function Dashboard(props: Props) {
         id: r.id,
         lat: r.lat,
         lng: r.lng,
-        color: statusById.get(r.status_id)?.color ?? "#64748b",
+        color: categoryById.get(r.category_id)?.color ?? "#64748b",
         closed: statusById.get(r.status_id)?.is_closed,
       })),
-    [filtered, statusById],
+    [filtered, categoryById, statusById],
   );
 
   const selected = selectedId ? reports.find((r) => r.id === selectedId) ?? null : null;
