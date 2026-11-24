@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Brand } from "@/components/brand";
 import { getCurrentUser } from "@/lib/data";
-import { demoLoginEmail, demoLoginPassword, oauthProviders, passwordLoginEnabled, safeNext } from "@/lib/config";
+import { demoLoginEmail, demoLoginPassword, demoStaffLoginEmail, demoStaffLoginPassword, oauthProviders, passwordLoginEnabled, safeNext } from "@/lib/config";
 import { LoginForm } from "./login-form";
 
 export async function generateMetadata() {
@@ -28,6 +28,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           providers={oauthProviders}
           passwordLogin={passwordLoginEnabled}
           demoLogin={demoLoginEmail && demoLoginPassword ? { email: demoLoginEmail, password: demoLoginPassword } : null}
+          demoStaffLogin={demoStaffLoginEmail && demoStaffLoginPassword ? { email: demoStaffLoginEmail, password: demoStaffLoginPassword } : null}
           initialError={params.error ? t("authError") : null}
         />
         <p className="mt-8 text-center text-xs leading-relaxed text-muted-foreground">

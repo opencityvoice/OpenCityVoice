@@ -17,9 +17,11 @@ as $$
 declare
   v_mid uuid;
   v_author uuid;
+  v_staff uuid;
 begin
   select id into v_mid from public.municipalities where slug = 'my-demo-city';
   select id into v_author from auth.users where email = 'demo@opencityvoice.example';
+  select id into v_staff from auth.users where email = 'staff@opencityvoice.example';
   if v_mid is null then
     return;
   end if;
@@ -40,14 +42,17 @@ begin
   -- Votes, comments, events, forwards, flags and subscriptions cascade.
   delete from public.reports where municipality_id = v_mid;
 
-  -- Join requests pile up while testing; deliberately approved members stay.
+  -- Members added while testing (incl. vandals promoting others via the public
+  -- staff account) are removed; the demo staff member is kept.
   delete from public.municipality_members
-   where municipality_id = v_mid and status = 'pending';
+   where municipality_id = v_mid and user_id is distinct from v_staff;
 
   -- Restore municipality chrome in case a staff tester changed it.
   update public.municipalities
      set is_active = true, is_official = false, primary_color = '#0f766e', report_seq = 0
    where id = v_mid;
+  update public.categories set is_active = true where municipality_id = v_mid;
+  update public.statuses set is_active = true where municipality_id = v_mid;
 
   if v_author is null then
     return;

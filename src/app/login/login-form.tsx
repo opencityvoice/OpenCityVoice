@@ -11,15 +11,18 @@ import { ProviderIcon } from "@/components/provider-icons";
 import { createClient } from "@/lib/supabase/client";
 import { providerLabels, type OAuthProvider } from "@/lib/config";
 
+type DemoCreds = { email: string; password: string };
+
 type Props = {
   next: string;
   providers: OAuthProvider[];
   passwordLogin: boolean;
-  demoLogin: { email: string; password: string } | null;
+  demoLogin: DemoCreds | null;
+  demoStaffLogin: DemoCreds | null;
   initialError: string | null;
 };
 
-export function LoginForm({ next, providers, passwordLogin, demoLogin, initialError }: Props) {
+export function LoginForm({ next, providers, passwordLogin, demoLogin, demoStaffLogin, initialError }: Props) {
   const t = useTranslations("auth");
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -146,22 +149,33 @@ export function LoginForm({ next, providers, passwordLogin, demoLogin, initialEr
         </>
       )}
 
-      {passwordLogin && demoLogin && (
+      {passwordLogin && (demoLogin || demoStaffLogin) && (
         <div className="rounded-xl border border-dashed bg-muted/40 p-3 text-sm">
           <p className="font-medium">{t("demoHint")}</p>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">
-            {demoLogin.email} / {demoLogin.password}
-          </p>
-          <button
-            type="button"
-            className="mt-1.5 text-xs font-medium text-primary underline underline-offset-2"
-            onClick={() => {
-              setEmail(demoLogin.email);
-              setPassword(demoLogin.password);
-            }}
-          >
-            {t("demoFill")}
-          </button>
+          <ul className="mt-1.5 space-y-1.5">
+            {[
+              { label: t("demoCitizen"), creds: demoLogin },
+              { label: t("demoStaff"), creds: demoStaffLogin },
+            ]
+              .filter((entry): entry is { label: string; creds: DemoCreds } => entry.creds !== null)
+              .map(({ label, creds }) => (
+                <li key={label} className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-xs text-muted-foreground">
+                    {label}: <span className="font-mono">{creds.email} / {creds.password}</span>
+                  </p>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs font-medium text-primary underline underline-offset-2"
+                    onClick={() => {
+                      setEmail(creds.email);
+                      setPassword(creds.password);
+                    }}
+                  >
+                    {t("demoFill")}
+                  </button>
+                </li>
+              ))}
+          </ul>
         </div>
       )}
 
