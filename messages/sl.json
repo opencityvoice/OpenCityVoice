@@ -65,6 +65,7 @@
     "demoCitizen": "Občan",
     "demoStaff": "Odgovorna oseba",
     "demoFill": "Uporabi",
+    "demoReset": "Vsi podatki se vsako noč ponastavijo na začetno stanje.",
     "checkEmail": "Preverite e-pošto",
     "checkEmailText": "Na {email} smo poslali povezavo za prijavo in 6-mestno kodo.",
     "code": "6-mestna koda",

@@ -176,6 +176,7 @@ export function LoginForm({ next, providers, passwordLogin, demoLogin, demoStaff
                 </li>
               ))}
           </ul>
+          <p className="mt-2 text-xs text-muted-foreground">{t("demoReset")}</p>
         </div>
       )}
 

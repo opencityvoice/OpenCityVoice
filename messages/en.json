@@ -65,6 +65,7 @@
     "demoCitizen": "Citizen",
     "demoStaff": "Staff",
     "demoFill": "Use",
+    "demoReset": "All content is reset to a clean demo state every night.",
     "checkEmail": "Check your inbox",
     "checkEmailText": "We sent a sign-in link and a 6-digit code to {email}.",
     "code": "6-digit code",
