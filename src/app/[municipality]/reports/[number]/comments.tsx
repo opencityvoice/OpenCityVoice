@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { BadgeCheck, Eye, EyeOff, ImagePlus, Loader2, Reply, Trash2, X } from "lucide-react";
+import { BadgeCheck, Eye, EyeOff, ImagePlus, Loader2, Reply, ShieldCheck, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ type Comment = {
   authorId: string;
   authorName: string | null;
   authorAvatar: string | null;
+  authorIsPlatformAdmin: boolean;
   parentId: string | null;
 };
 
@@ -246,11 +247,18 @@ export function Comments({ reportId, path, currentUserId, canModerate, comments,
         >
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
             <span className="font-medium">{comment.authorName || t("anonymous")}</span>
-            {comment.isOfficial && (
+            {comment.isOfficial ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
                 <BadgeCheck className="size-3.5" />
                 {t("official")}
               </span>
+            ) : (
+              comment.authorIsPlatformAdmin && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                  <ShieldCheck className="size-3.5" />
+                  {t("platformAdmin")}
+                </span>
+              )
             )}
             <TimeAgo date={comment.createdAt} className="text-xs text-muted-foreground" />
             <div className="ml-auto flex items-center gap-3">

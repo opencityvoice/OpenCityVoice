@@ -1,10 +1,11 @@
 -- Database tests (pgTAP). Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(44);
+select plan(46);
 
 -- Seed ids
 \set lj '\'10000000-0000-4000-8000-000000000001\''
+\set admin '\'00000000-0000-4000-8000-000000000001\''
 \set staff '\'00000000-0000-4000-8000-000000000002\''
 \set citizen '\'00000000-0000-4000-8000-000000000003\''
 \set pending '\'00000000-0000-4000-8000-000000000004\''
@@ -257,6 +258,24 @@ select ok(
      where v.user_id = :citizen and t.municipality_id = :lj
        and t.number = (select number from public.reports where municipality_id = :lj and description <> 'Broken bench in the park' order by number limit 1)),
   'the duplicate is closed and its author supports the original');
+reset role;
+
+-- Official comment badge: only approved municipality members, not platform admins
+set local role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', :admin, 'role', 'authenticated')::text, true);
+insert into public.report_comments (report_id, author_id, body)
+select id, :admin, 'Platform admin note' from public.reports where municipality_id = :lj limit 1;
+select is(
+  (select is_official from public.report_comments where body = 'Platform admin note'),
+  false,
+  'platform admin comments are not marked official');
+select set_config('request.jwt.claims', json_build_object('sub', :staff, 'role', 'authenticated')::text, true);
+insert into public.report_comments (report_id, author_id, body)
+select id, :staff, 'Official staff note' from public.reports where municipality_id = :lj limit 1;
+select is(
+  (select is_official from public.report_comments where body = 'Official staff note'),
+  true,
+  'staff comments are marked official');
 reset role;
 
 select * from finish();

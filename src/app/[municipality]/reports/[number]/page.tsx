@@ -72,7 +72,7 @@ export default async function ReportPage({ params }: Params) {
       .order("created_at", { ascending: false }),
     supabase
       .from("report_comments")
-      .select("id, body, photos, is_official, is_hidden, created_at, author_id, parent_id, author:profiles(full_name, avatar_url)")
+      .select("id, body, photos, is_official, is_hidden, created_at, author_id, parent_id, author:profiles(full_name, avatar_url, is_platform_admin)")
       .eq("report_id", report.id)
       .order("created_at"),
     user
@@ -195,6 +195,7 @@ export default async function ReportPage({ params }: Params) {
                 authorId: c.author_id,
                 authorName: c.author?.full_name ?? null,
                 authorAvatar: c.author?.avatar_url ?? null,
+                authorIsPlatformAdmin: c.author?.is_platform_admin ?? false,
                 parentId: c.parent_id,
               }))}
             />
